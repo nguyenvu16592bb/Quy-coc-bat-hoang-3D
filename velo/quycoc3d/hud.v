@@ -8,7 +8,8 @@ import velo.render
 // realm, HP/MP/XP bars, buffs), minimap with live dots, quest & dungeon panels,
 // the 7-slot skill bar with cooldowns, consumable pills, the system banner and the
 // floating damage numbers. Static layout lives in assets/scenes/main.scene; this
-// component feeds it every frame and wires the buttons.
+// component feeds it every frame and wires the buttons. The map/team panels and the
+// boss bar are built at runtime by WorldMapUI (ui_map.v).
 
 const pill_names = ['Huyết Đan', 'Tụ Linh Đan', 'Bạo Linh Phù']
 
@@ -20,6 +21,7 @@ pub mut:
 	mp_text      &core.Node = unsafe { nil } @[hide]
 	zoom_label   &core.Node = unsafe { nil } @[hide]
 	quest_label  &core.Node = unsafe { nil } @[hide]
+	map_title    &core.Node = unsafe { nil } @[hide]
 	banner_label &core.Node = unsafe { nil } @[hide]
 	buff_aura    &core.Node = unsafe { nil } @[hide]
 	buff_rage    &core.Node = unsafe { nil } @[hide]
@@ -49,18 +51,25 @@ pub fn (mut h HUDSync) start() {
 	if n := sc.find('HUD/TopLeft/BuffRage') { h.buff_rage = n }
 	if n := sc.find('HUD/Minimap/Zoom') { h.zoom_label = n }
 	if n := sc.find('HUD/Minimap/Map') { h.map_panel = n }
+	if n := sc.find('HUD/Minimap/Title') { h.map_title = n }
 	if n := sc.find('HUD/QuestPanel/QuestText') { h.quest_label = n }
 	if n := sc.find('HUD/Banner') { h.banner_label = n }
 	for i in 0 .. 7 {
 		if n := sc.find('HUD/Slots/Slot${i}') { h.slots << n }
 		if n := sc.find('HUD/Slots/Slot${i}/Cd') { h.cd_labels << n }
 	}
-	if n := sc.find('HUD/Pills/PillHp') { h.pill_labels << n }
-	if n := sc.find('HUD/Pills/PillMp') { h.pill_labels << n }
-	if n := sc.find('HUD/Pills/PillRage') { h.pill_labels << n }
-	if n := sc.find('HUD/Pills/PillHp') { h.btn_pills << n }
-	if n := sc.find('HUD/Pills/PillMp') { h.btn_pills << n }
-	if n := sc.find('HUD/Pills/PillRage') { h.btn_pills << n }
+	if n := sc.find('HUD/Pills/PillHp') {
+		h.pill_labels << n
+		h.btn_pills << n
+	}
+	if n := sc.find('HUD/Pills/PillMp') {
+		h.pill_labels << n
+		h.btn_pills << n
+	}
+	if n := sc.find('HUD/Pills/PillRage') {
+		h.pill_labels << n
+		h.btn_pills << n
+	}
 	if n := sc.find('HUD/QuestPanel/BtnSwarm') { h.btn_swarm = n }
 	if n := sc.find('HUD/QuestPanel/BtnElite') { h.btn_elite = n }
 	if n := sc.find('HUD/QuestPanel/BtnBoss') { h.btn_boss = n }
@@ -70,7 +79,7 @@ pub fn (mut h HUDSync) start() {
 	// minimap dots: a pool of enemy dots + the player marker
 	if h.map_panel != unsafe { nil } {
 		mut map_node := h.map_panel
-		for i in 0 .. 24 {
+		for i in 0 .. 32 {
 			mut d := make_dot('Dot${i}', core.rgba(255, 77, 79, 255), 8)
 			map_node.add_child(mut d)
 			d.active = false
@@ -79,15 +88,6 @@ pub fn (mut h HUDSync) start() {
 		mut pdot := make_dot('PlayerDot', core.rgba(81, 207, 102, 255), 10)
 		map_node.add_child(mut pdot)
 		h.player_dot = pdot
-		// the two summoning portals (static purple dots)
-		for cfg in [core.vec3(11, -5, 0), core.vec3(16, 11, 0)] {
-			mut d := make_dot('PortalDot', core.rgba(192, 132, 252, 255), 10)
-			map_node.add_child(mut d)
-			if mut w := d.get_component[render.Widget]() {
-				w.center_x = cfg.x / 25 * 56
-				w.center_y = cfg.y / 25 * 56
-			}
-		}
 	}
 }
 
@@ -118,10 +118,16 @@ pub fn (mut h HUDSync) update(dt f32) {
 	set_label(h.hp_text, '${s.hp}/${s.max_hp}')
 	set_label(h.mp_text, '${int(s.mp)}/${int(s.max_mp)}')
 	set_label(h.zoom_label, '${int(s.zoom)}%')
-	if s.kills >= s.quest {
-		set_label(h.quest_label, 'Nhiệm vụ hoàn thành! (${s.kills}/${s.quest})')
+	m := maps[s.map_index]
+	set_label(h.map_title, '${m.name}')
+	if s.map_kills >= s.map_goal {
+		if s.boss_up {
+			set_label(h.quest_label, 'Hạ ${boss_title(m.boss)}! (Boss)')
+		} else {
+			set_label(h.quest_label, 'Hoàn thành ${m.name}! (${s.map_kills}/${s.map_goal})')
+		}
 	} else {
-		set_label(h.quest_label, 'Tiêu diệt Yêu Thú (${s.kills}/${s.quest})')
+		set_label(h.quest_label, 'Tiêu diệt Yêu Thú (${s.map_kills}/${s.map_goal})')
 	}
 
 	// ---- banner (fades like the design) ----
@@ -179,16 +185,19 @@ pub fn (mut h HUDSync) update(dt f32) {
 		mut d := h.dots[i]
 		if i < es.len && es[i].alive() {
 			ep := es[i].position()
-			boss := es[i].max >= 1000
 			if mut w := d.get_component[render.Widget]() {
 				w.center_x = ep.x / 25 * 56
 				w.center_y = ep.z / 25 * 56
 			}
 			if mut p := d.get_component[render.Panel]() {
-				p.color = if boss { core.rgba(255, 146, 43, 255) } else { core.rgba(255, 77, 79, 255) }
+				p.color = if es[i].boss {
+					core.rgba(255, 146, 43, 255)
+				} else {
+					core.rgba(255, 77, 79, 255)
+				}
 			}
 			if mut t := d.get_component[render.UITransform]() {
-				sz := if boss { f32(14) } else { f32(8) }
+				sz := if es[i].boss { f32(15) } else { f32(7) }
 				t.size = core.vec2(sz, sz)
 			}
 			d.active = true
@@ -282,7 +291,7 @@ pub fn (mut f FloatText) start() {
 		else {}
 	}
 	f.node.add_component(&render.UITransform{
-		size: core.vec2(220, 30)
+		size: core.vec2(240, 30)
 	})
 	f.node.add_component(&render.Label{
 		text:         f.text

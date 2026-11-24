@@ -83,6 +83,7 @@ node Main {
   node HUD {
     Canvas { }
     HUDSync { }
+    WorldMapUI { }
     node Floats { }
     node TopLeft {
       Panel { color = [16, 24, 26, 212]  radius = 10  border_color = [212, 175, 106, 150]  border_width = 1  block_input = false }
@@ -379,7 +380,7 @@ node Main {
     node Help {
       Widget { align_center_x = true  center_x = 0  align_bottom = true  bottom = 4 }
       UITransform { size = [1100, 20] }
-      Label { text = "WASD di chuyển · Click chuột đi/đánh · 1-6 tuyệt kỹ · Space chém · R hồi huyết · Kéo chuột / Q-E xoay camera · Con lăn zoom"  size = 13  color = [214, 197, 161, 225]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+      Label { text = "WASD di chuyển · Click đi/đánh · 1-6 tuyệt kỹ · Space chém · R hồi huyết · M địa đồ · T đội hình · F1-F3 đổi nhân vật · [ ] chuyển map · Q-E/kéo chuột xoay · lăn zoom"  size = 13  color = [214, 197, 161, 225]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
       UITransform { size = [1100, 20] }
     }
   }

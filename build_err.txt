@@ -1,0 +1,73 @@
+﻿== sync game to engine clone ==
+== compile native exe ==
+powershell : webp/webp.v:157:8: notice: shifting a value from a signed type `int` can change the sign
+At line:1 char:72
++ ... o\quycoc3d; powershell -ExecutionPolicy Bypass -File .\build_game.ps1 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (webp/webp.v:157...change the sign:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  155 |     mut x := v
+  156 |     for _ in 0 .. n {
+  157 |         r = (r << 1) | (x & 1)
+      |              ^
+  158 |         x >>= 1
+  159 |     }
+webp/webp.v:206:19: notice: shifting a value from a signed type `int` can change the sign
+  204 |                 rev := reverse_bits(code, l)
+  205 |                 for k := rev; k < 256; k += 1 << l {
+  206 |                     h.fast[k] = (sym << 4) | l
+      |                                  ~~~
+  207 |                 }
+  208 |             }
+webp/webp.v:369:12: notice: shifting a value from a signed type `int` can change the sign
+  367 |     }
+  368 |     extra := (prefix - 2) >> 1
+  369 |     offset := (2 + (prefix & 1)) << extra
+      |               ~~~~~~~~~~~~~~~~~~
+  370 |     return offset + int(br.read(extra)) + 1
+  371 | }
+examples/quycoc3d/team.v:70:12: notice: `e0` is immutable, cannot have a mutable reference to an immutable object
+   68 |     c.cd -= dt
+   69 |     if e0 := nearest_enemy_from(sc, tr.position, 3.6) {
+   70 |         mut e := e0
+      |                  ~~
+   71 |         mut et := e.position() - tr.position
+   72 |         et.y = 0
+examples/quycoc3d/team.v:98:6: notice: variable `main` shadows a function declaration
+   96 | fn build_party(mut world core.Node) {
+   97 |     mut s := gs()
+   98 |     mut main := world.find('Hero') or { return }
+      |         ~~~~
+   99 |     main.add_component(&HeroMember{
+  100 |         slot:    0
+examples/quycoc3d/team.v:226:12: notice: `pn` is immutable, cannot have a mutable reference to an immutable object
+  224 |             continue
+  225 |         }
+  226 |         mut n := pn
+      |                  ~~
+  227 |         mut tr := render3d.transform3d(mut n)
+  228 |         tr.position = core.vec3(f32(i - 1) * 1.9, 0, 6 + f32(i) * 1.3)
+examples/quycoc3d/world.v:125:14: notice: `d` is immutable, cannot have a mutable reference to an immutable object
+  123 |     // decor
+  124 |     if d := world.find('Decor') {
+  125 |         mut old := d
+      |                    ^
+  126 |         old.destroy()
+  127 |     }
+examples/quycoc3d/world.v:133:14: notice: `a` is immutable, cannot have a mutable reference to an immutable object
+  131 |     // ambient particles
+  132 |     if a := world.find('Ambient') {
+  133 |         mut old := a
+      |                    ^
+  134 |         old.destroy()
+  135 |     }
+examples/quycoc3d/world.v:1371:13: notice: `ch` is immutable, cannot have a mutable reference to an immutable object
+ 1369 |     if mut en := world.find('Enemies') {
+ 1370 |         for ch in en.children {
+ 1371 |             mut c := ch
+      |                      ~~
+ 1372 |             c.destroy()
+ 1373 |         }
+== ship assets next to the exe ==
+OK - build at C:\Users\Admin\Documents\GitHub\Quy-coc-bat-hoang-3D\velo\quycoc3d\build\QuocCocBatHoang3D.exe

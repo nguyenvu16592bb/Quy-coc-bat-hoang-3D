@@ -12,14 +12,15 @@ import velo.render3d
 //   3 Bát Hoang Toàn Phong signature golden whirlwind AoE        mp 25 cd 3.5
 //   4 Kim Cang Hộ Thể      heal + knockback shockwave             mp 35 cd 7.0
 //   5 Thiên Lôi Kiếm Trận  giant celestial greatsword slam        mp 50 cd 9.0
-//   6 Cảnh Giới Đột Phá    golden aura mode (+45% damage)         mp 80 cd 15
-// Crit 35% (+35% with the rage talisman), enemies dodge basic slashes 8%.
+//   6 Cảnh Giới Đột Phá    aura mode (+45% damage)                mp 80 cd 15
+// All VFX take the leader's blade colour (fx_color), so each hero fights in their
+// own element. Only the party leader casts; companions have their own auto-attack.
 
 const skill_mp = [0, 15, 30, 25, 35, 50, 80]
 
 const skill_cd = [f32(0.45), 2.2, 5.5, 3.5, 7.0, 9.0, 15.0]
 
-const skill_names = ['Chém Thường', 'Kiếm Khí Trảm', 'Vạn Kiếm Quy Tông', 'Bát Hoang Toàn Phong',
+pub const skill_names = ['Chém Thường', 'Kiếm Khí Trảm', 'Vạn Kiếm Quy Tông', 'Bát Hoang Toàn Phong',
 	'Kim Cang Hộ Thể', 'Thiên Lôi Kiếm Trận', 'Cảnh Giới Đột Phá']
 
 pub struct PlayerCombat {
@@ -42,7 +43,16 @@ pub fn (mut c PlayerCombat) start() {
 	}
 }
 
+// is_leader: the combat component of a companion stays idle.
+fn (c &PlayerCombat) is_leader() bool {
+	m := c.node.get_component[HeroMember]() or { return true }
+	return gs().leader == m.slot
+}
+
 pub fn (mut c PlayerCombat) update(dt f32) {
+	if !c.is_leader() {
+		return
+	}
 	mut s := gs()
 	// cooldowns, buffs and mana regeneration (design: +0.14 MP per frame)
 	for i in 0 .. 7 {
@@ -57,6 +67,12 @@ pub fn (mut c PlayerCombat) update(dt f32) {
 		s.rage -= dt
 	}
 	s.mp = f32(math.min(s.max_mp, s.mp + 8.4 * dt))
+
+	// UI panels own the keyboard while they are open
+	if s.show_map || s.show_team {
+		c.animate(dt)
+		return
+	}
 
 	inp := c.input()
 	if inp.was_pressed(.space) {
@@ -117,12 +133,12 @@ pub fn (mut c PlayerCombat) cast(i int) {
 			spawn_whirlwind(mut world, hp, 2.7, 0.32, true)
 			for mut e in enemies_of(sc) {
 				if e.position().distance(hp) <= 3.3 {
-				apply_hit(mut e, f32(s.atk), false, 4.5)
+					apply_hit(mut e, f32(s.atk), false, 4.5)
 				}
 			}
 		}
 		1 {
-			// Kiếm Khí Trảm — three golden flying sword beams
+			// Kiếm Khí Trảm — three flying sword beams
 			c.swing_t = 0
 			from := hp + fwd.mul(0.8) + core.vec3(0, 1.05, 0)
 			offs := [f32(-0.22), f32(0), f32(0.22)]
@@ -143,17 +159,17 @@ pub fn (mut c PlayerCombat) cast(i int) {
 			}
 			for mut e in enemies_of(sc) {
 				if center.distance(core.vec3(e.position().x, 0, e.position().z)) <= 4.8 {
-				apply_hit(mut e, f32(s.atk) * 1.9, true, 5)
+					apply_hit(mut e, f32(s.atk) * 1.9, true, 5)
 				}
 			}
 		}
 		3 {
-			// Bát Hoang Toàn Phong — signature golden whirlwind AoE
+			// Bát Hoang Toàn Phong — signature whirlwind AoE
 			c.spin_t = 0
 			spawn_whirlwind(mut world, hp, 4.6, 0.65, true)
 			for mut e in enemies_of(sc) {
 				if e.position().distance(hp) <= 4.9 {
-				apply_hit(mut e, f32(s.atk) * 1.75, true, 8.5)
+					apply_hit(mut e, f32(s.atk) * 1.75, true, 8.5)
 				}
 			}
 		}
@@ -169,7 +185,7 @@ pub fn (mut c PlayerCombat) cast(i int) {
 			spawn_whirlwind(mut world, hp, 5.2, 0.55, true)
 			for mut e in enemies_of(sc) {
 				if e.position().distance(hp) <= 5.5 {
-				apply_hit(mut e, f32(s.atk) * 1.1, true, 14)
+					apply_hit(mut e, f32(s.atk) * 1.1, true, 14)
 				}
 			}
 			publish()
@@ -183,7 +199,7 @@ pub fn (mut c PlayerCombat) cast(i int) {
 			spawn_giant_sword(mut world, target)
 		}
 		6 {
-			// Cảnh Giới Đột Phá — golden aura mode
+			// Cảnh Giới Đột Phá — aura mode
 			s.aura = 10.0
 			show_banner('Bát Hoang Kim Thân Kích Hoạt! (+45% Sát Thương)')
 			spawn_whirlwind(mut world, hp, 5.5, 0.8, true)
@@ -269,29 +285,35 @@ fn use_pill(t int) {
 	match t {
 		0 {
 			s.hp = int(math.min(f32(s.max_hp), f32(s.hp + 85)))
-			if sc := msc { if hp := hero_pos(sc) {
-				float_text(sc, hp + core.vec3(0, 1.8, 0), '+85 HP', 'heal')
-				if mut world := sc.find('World') {
-					burst_colored(mut world, hp + core.vec3(0, 0.8, 0), core.rgba(81, 207, 102, 255),
-						core.rgba(40, 160, 70, 255), 10)
+			if sc := msc {
+				if hp := hero_pos(sc) {
+					float_text(sc, hp + core.vec3(0, 1.8, 0), '+85 HP', 'heal')
+					if mut world := sc.find('World') {
+						burst_colored(mut world, hp + core.vec3(0, 0.8, 0), core.rgba(81, 207, 102, 255),
+							core.rgba(40, 160, 70, 255), 10)
+					}
 				}
-			} }
+			}
 		}
 		1 {
 			s.mp = math.min(s.max_mp, s.mp + f32(160))
-			if sc := msc { if hp := hero_pos(sc) {
-				float_text(sc, hp + core.vec3(0, 1.8, 0), '+160 MP', 'dodge')
-			} }
+			if sc := msc {
+				if hp := hero_pos(sc) {
+					float_text(sc, hp + core.vec3(0, 1.8, 0), '+160 MP', 'dodge')
+				}
+			}
 		}
 		2 {
 			s.rage = 12.0
 			show_banner('Bạo Linh Phù: Tỉ lệ Bạo Kích tăng mạnh!')
-			if sc := msc { if hp := hero_pos(sc) {
-				if mut world := sc.find('World') {
-					burst_colored(mut world, hp + core.vec3(0, 0.8, 0), core.rgba(255, 146, 43, 255),
-						core.rgba(255, 120, 30, 255), 12)
+			if sc := msc {
+				if hp := hero_pos(sc) {
+					if mut world := sc.find('World') {
+						burst_colored(mut world, hp + core.vec3(0, 0.8, 0), core.rgba(255, 146, 43, 255),
+							core.rgba(255, 120, 30, 255), 12)
+					}
 				}
-			} }
+			}
 		}
 		else {}
 	}
@@ -303,11 +325,16 @@ fn use_pill(t int) {
 // nearest_enemy: the closest living enemy within `max_range` of the hero.
 fn nearest_enemy(s &core.Scene, max_range f32) ?&Health {
 	hp := hero_pos(s)?
+	return nearest_enemy_from(s, hp, max_range)
+}
+
+// nearest_enemy_from: the closest living enemy to an arbitrary point (companions).
+fn nearest_enemy_from(s &core.Scene, p core.Vec3, max_range f32) ?&Health {
 	es := enemies_of(s)
 	mut best_i := -1
 	mut best_d := max_range
 	for i, e in es {
-		d := e.position().distance(hp)
+		d := e.position().distance(p)
 		if d < best_d {
 			best_d = d
 			best_i = i
@@ -383,7 +410,7 @@ fn burst_colored(mut parent core.Node, p core.Vec3, c0 core.Color, c1 core.Color
 
 // ---------- VFX components ----------
 
-// WhirlwindFX — the design's golden crescent-ring vortex; follows the hero while it
+// WhirlwindFX — the golden crescent-ring vortex; follows the hero while it
 // plays, spins fast and fades out.
 pub struct WhirlwindFX {
 	core.Component
@@ -422,8 +449,10 @@ fn fade_mesh(n &core.Node, name string, k f32) {
 	}
 }
 
-// spawn_whirlwind: builds the 3-ring golden vortex under World.
+// spawn_whirlwind: builds the 3-ring vortex under World, in the leader's colour.
 fn spawn_whirlwind(mut world core.Node, origin core.Vec3, max_radius f32, duration f32, follow bool) {
+	col := fx_color()
+	white := core.rgba(255, 246, 220, 255)
 	mut wn := core.Node.new('Whirlwind')
 	wn.add_component(&render3d.Transform3D{
 		position: origin + core.vec3(0, 0.75, 0)
@@ -434,12 +463,12 @@ fn spawn_whirlwind(mut world core.Node, origin core.Vec3, max_radius f32, durati
 		follow:     follow
 	})
 	r1 := add_mesh(mut wn, 'Ring1', core.vec3(0, 0, 0), core.vec3(90, 0, 0),
-		core.vec3(max_radius * 2, max_radius * 2, 1), 'ring', core.rgba(255, 212, 59, 230))
+		core.vec3(max_radius * 2, max_radius * 2, 1), 'ring', core.rgba(col.r, col.g, col.b, 230))
 	r2 := add_mesh(mut wn, 'Ring2', core.vec3(0, 0.12, 0), core.vec3(90, 0, 0),
-		core.vec3(max_radius * 1.5, max_radius * 1.5, 1), 'ring', core.rgba(255, 243, 191, 220))
+		core.vec3(max_radius * 1.5, max_radius * 1.5, 1), 'ring', core.rgba(white.r, white.g, white.b, 220))
 	rim := add_mesh(mut wn, 'Rim', core.vec3(0, 0, 0), core.vec3(90, 0, 0),
 		core.vec3(max_radius * 1.76, max_radius * 1.76, max_radius * 1.76), 'torus',
-		core.rgba(255, 224, 102, 220))
+		core.rgba(col.r, col.g, col.b, 220))
 	if r1 == unsafe { nil } || r2 == unsafe { nil } || rim == unsafe { nil } {
 		return
 	}
@@ -452,14 +481,14 @@ fn spawn_whirlwind(mut world core.Node, origin core.Vec3, max_radius f32, durati
 	world.add_child(mut wn)
 }
 
-// SwordBeam — a glowing golden sword that flies straight and pierces enemies
+// SwordBeam — a glowing sword that flies straight and pierces enemies
 // (the design keeps a hit-set, one hit per enemy).
 pub struct SwordBeam {
 	core.Component
 pub mut:
 	velocity core.Vec3
-	damage   int    = 90
-	life     f32    = 1.1
+	damage   int = 90
+	life     f32 = 1.1
 	age      f32 @[hide]
 	hits     []voidptr @[hide]
 }
@@ -474,17 +503,15 @@ pub fn (mut b SwordBeam) update(dt f32) {
 			continue
 		}
 		ep := e.position() + core.vec3(0, 0.9, 0)
-		boss := e.max >= 1000
-		if ep.distance(tr.position) < (if boss { f32(2.0) } else { f32(1.35) }) {
+		if ep.distance(tr.position) < (if e.boss { f32(2.2) } else { f32(1.35) }) {
 			b.hits << key
-				apply_hit(mut e, f32(b.damage), true, 5)
+			apply_hit(mut e, f32(b.damage), true, 5)
 		}
 	}
 	if b.age >= b.life {
 		mut parent := b.node.parent
 		if parent != unsafe { nil } {
-			burst_colored(mut parent, tr.position, core.rgba(255, 244, 200, 255),
-				core.rgba(255, 200, 80, 255), 12)
+			burst_colored(mut parent, tr.position, core.rgba(255, 244, 200, 255), fx_color(), 12)
 		}
 		b.node.destroy()
 	}
@@ -492,7 +519,7 @@ pub fn (mut b SwordBeam) update(dt f32) {
 
 // spawn_beam: the flying sword qi (cone + glow + trail + light).
 fn spawn_beam(mut world core.Node, from core.Vec3, dir core.Vec3, dmg int) {
-	gold := core.rgba(255, 212, 59, 255)
+	col := fx_color()
 	mut n := core.Node.new('Beam')
 	n.add_component(&render3d.Transform3D{
 		position: from
@@ -508,8 +535,8 @@ fn spawn_beam(mut world core.Node, from core.Vec3, dir core.Vec3, dmg int) {
 	})
 	tip.add_component(&render3d.MeshRenderer3D{
 		mesh:     'cone'
-		color:    gold
-		emissive: gold
+		color:    col
+		emissive: col
 		unlit:    true
 	})
 	n.add_child(mut tip)
@@ -521,28 +548,28 @@ fn spawn_beam(mut world core.Node, from core.Vec3, dir core.Vec3, dmg int) {
 	glow.add_component(&render3d.MeshRenderer3D{
 		mesh:     'cylinder'
 		color:    core.rgba(255, 255, 255, 110)
-		emissive: gold
+		emissive: col
 		blend:    'additive'
 		unlit:    true
 	})
 	n.add_child(mut glow)
 	n.add_component(&render3d.PointLight3D{
-		color:     gold
+		color:     col
 		intensity: 1.6
 		range:     4
 	})
 	n.add_component(&render3d.Trail3D{
 		width:     0.3
 		duration:  0.2
-		color:     core.rgba(255, 220, 120, 220)
-		color_end: core.rgba(255, 150, 40, 0)
+		color:     core.rgba(col.r, col.g, col.b, 220)
+		color_end: core.rgba(col.r, col.g, col.b, 0)
 	})
 	world.add_child(mut n)
 	mut tr := render3d.transform3d(mut n)
 	tr.face(dir)
 }
 
-// RainSword — one cyan sword of Vạn Kiếm Quy Tông falling from the sky.
+// RainSword — one sword of Vạn Kiếm Quy Tông falling from the sky.
 pub struct RainSword {
 	core.Component
 pub mut:
@@ -557,7 +584,7 @@ pub fn (mut r RainSword) update(dt f32) {
 		mut parent := r.node.parent
 		if parent != unsafe { nil } {
 			burst_colored(mut parent, core.vec3(tr.position.x, 0.2, tr.position.z),
-				core.rgba(120, 220, 255, 255), core.rgba(60, 130, 230, 255), 6)
+				core.rgba(220, 245, 255, 255), fx_color(), 6)
 		}
 	}
 	if tr.position.y < -1 {
@@ -566,7 +593,7 @@ pub fn (mut r RainSword) update(dt f32) {
 }
 
 fn spawn_rain_sword(mut world core.Node, center core.Vec3) {
-	cyan := core.rgba(59, 201, 219, 255)
+	col := fx_color().lerp(core.rgba(220, 250, 255, 255), 0.55)
 	ox := center.x + (rand.f32() - 0.5) * 6.5
 	oz := center.z + (rand.f32() - 0.5) * 6.5
 	mut n := core.Node.new('RainSword')
@@ -578,8 +605,8 @@ fn spawn_rain_sword(mut world core.Node, center core.Vec3) {
 	n.add_component(&RainSword{})
 	n.add_component(&render3d.MeshRenderer3D{
 		mesh:     'cone'
-		color:    cyan
-		emissive: core.rgba(20, 90, 120, 255)
+		color:    col
+		emissive: col
 		unlit:    true
 	})
 	world.add_child(mut n)
@@ -605,12 +632,12 @@ pub fn (mut gw GiantSword) update(dt f32) {
 	gw.impacted = true
 	mut world := gw.scene().find('World') or { return }
 	burst_colored(mut world, gw.target + core.vec3(0, 0.4, 0), core.rgba(255, 244, 200, 255),
-		core.rgba(255, 212, 59, 255), 30)
+		fx_color(), 30)
 	spawn_whirlwind(mut world, gw.target, 5.5, 0.55, false)
 	s := gs()
 	for mut e in enemies_of(gw.scene()) {
 		if core.vec3(e.position().x, 0, e.position().z).distance(core.vec3(gw.target.x, 0, gw.target.z)) <= 5.8 {
-				apply_hit(mut e, f32(s.atk) * 2.8, true, 12)
+			apply_hit(mut e, f32(s.atk) * 2.8, true, 12)
 		}
 	}
 	gw.node.after(0.4, fn [gw] () {
@@ -620,7 +647,7 @@ pub fn (mut gw GiantSword) update(dt f32) {
 }
 
 fn spawn_giant_sword(mut world core.Node, target core.Vec3) {
-	gold := core.rgba(255, 236, 153, 255)
+	col := fx_color().lerp(core.rgba(255, 250, 230, 255), 0.4)
 	mut n := core.Node.new('GiantSword')
 	n.add_component(&render3d.Transform3D{
 		position: core.vec3(target.x, 12, target.z)
@@ -632,12 +659,12 @@ fn spawn_giant_sword(mut world core.Node, target core.Vec3) {
 	})
 	n.add_component(&render3d.MeshRenderer3D{
 		mesh:     'cone'
-		color:    gold
-		emissive: core.rgba(180, 130, 30, 255)
+		color:    col
+		emissive: col
 		unlit:    true
 	})
 	n.add_component(&render3d.PointLight3D{
-		color:     gold
+		color:     col
 		intensity: 3
 		range:     10
 	})

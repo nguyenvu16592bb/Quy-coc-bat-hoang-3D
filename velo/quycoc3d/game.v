@@ -43,11 +43,50 @@ mut:
 	hero_moving bool
 	// pending dungeon wave (set by HUD buttons, consumed by WaveSpawner)
 	pending_wave string
+	// ---- Bát Hoang Địa Đồ (map progression) ----
+	map_index int
+	map_kills int
+	map_goal  int = 12
+	cleared   [16]bool
+	boss_up   bool
+	boss_ref  &core.Node = unsafe { nil }
+	stones    int // Linh Thạch: reward from clearing a map
+	// ---- party (3 heroes on the field, 8 in the roster) ----
+	party    []&core.Node
+	leader   int
+	hero_ids [3]int = [0, 1, 2]!
+	// ---- UI panels ----
+	show_map  bool
+	show_team bool
 }
 
 const g = &GState{}
 
 const realms = ['Trúc Cơ Kỳ', 'Kim Đan Kỳ', 'Nguyên Anh Kỳ', 'Hóa Thần Kỳ', 'Đăng Tiên Cảnh']
+
+// hero_def: the roster entry of a hero id (safe for any id).
+fn hero_def(id int) HeroDef {
+	if id < 0 || id >= heroes.len {
+		return heroes[0]
+	}
+	return heroes[id]
+}
+
+// apply_hero_stats: recomputes the party's HP/ATK/CRIT from the level and the
+// leader's hero multipliers (roster 0 = balanced, 5 = tank, 6 = assassin...).
+fn apply_hero_stats() {
+	mut s := gs()
+	h := hero_def(s.hero_ids[s.leader])
+	base_hp := 180 + (s.level - 10) * 35
+	base_atk := 68 + (s.level - 10) * 14
+	s.max_hp = int(f32(base_hp) * h.hp_mult)
+	s.atk = int(f32(base_atk) * h.atk_mult)
+	s.crit = f32(0.35) + h.crit_add
+	if s.hp > s.max_hp {
+		s.hp = s.max_hp
+	}
+	publish()
+}
 
 // gs: a mutable view of the shared state (game loop is single threaded).
 fn gs() &GState {
@@ -152,6 +191,13 @@ fn clamp_to_arena(p core.Vec3) core.Vec3 {
 	return p
 }
 
+// fx_color: the leader's blade colour, used by every skill VFX so each hero
+// fights with their own colour (gold, ice, blood, emerald, fire, violet...).
+fn fx_color() core.Color {
+	s := gs()
+	return hero_def(s.hero_ids[s.leader]).blade
+}
+
 // ---------- Isometric orbit camera ----------
 // The camera sits at yaw/pitch around the hero; zoom 20..85% maps to the design's
 // `camDistance = 16 + ((100 - zoom) / 65) * 26` (35% ≈ 42 units, wide panoramic).
@@ -211,7 +257,8 @@ pub fn (mut c FollowIsoCamera) update(dt f32) {
 
 // ---------- Hero controller ----------
 // WASD relative to the camera + click-to-move (with the green ground marker like the design),
-// chibi run/idle from the single FBX clip, arena clamp.
+// chibi run/idle from the single FBX clip, arena clamp. Only the leader is driven here;
+// the two companions are moved by CompanionAI (team.v).
 
 pub struct HeroController {
 	core.Component
@@ -249,7 +296,17 @@ pub fn (mut h HeroController) start() {
 	h.marker = m
 }
 
+// member_slot: the party slot of this hero node (-1 = not a party member).
+fn (h &HeroController) member_slot() int {
+	m := h.node.get_component[HeroMember]() or { return -1 }
+	return m.slot
+}
+
 pub fn (mut h HeroController) update(dt f32) {
+	mut s := gs()
+	if h.member_slot() >= 0 && h.member_slot() != s.leader {
+		return
+	}
 	mut tr := render3d.transform3d(mut h.node)
 	mut sk := h.node.get_component[render3d.SkinnedModel3D]() or { return }
 	if h.idle_time < 0 && sk.data != unsafe { nil } {
@@ -258,18 +315,25 @@ pub fn (mut h HeroController) update(dt f32) {
 	inp := h.input()
 	yaw := camera_yaw(h.scene())
 
-	// click-to-move: press + release close together (not a camera drag)
-	if inp.mouse_pressed {
-		h.press_at = inp.mouse
-	}
-	if inp.mouse_released {
-		if inp.mouse.distance(h.press_at) < 7 {
-			h.pick_target(inp.mouse)
-		} else {
-			// drag = camera orbit: cancel the walk target
-			h.target_pos = none
-			h.target_enemy = unsafe { nil }
-			h.hide_marker()
+	// click-to-move: press + release close together (not a camera drag).
+	// While a full-screen panel is open the click belongs to the panel.
+	if s.show_map || s.show_team {
+		h.target_pos = none
+		h.target_enemy = unsafe { nil }
+		h.hide_marker()
+	} else {
+		if inp.mouse_pressed {
+			h.press_at = inp.mouse
+		}
+		if inp.mouse_released {
+			if inp.mouse.distance(h.press_at) < 7 {
+				h.pick_target(inp.mouse)
+			} else {
+				// drag = camera orbit: cancel the walk target
+				h.target_pos = none
+				h.target_enemy = unsafe { nil }
+				h.hide_marker()
+			}
 		}
 	}
 
@@ -313,7 +377,6 @@ pub fn (mut h HeroController) update(dt f32) {
 		}
 	}
 
-	mut s := gs()
 	spd := if s.aura > 0 { h.aura_speed } else { h.speed }
 	target := want.mul(spd)
 	k := math.min(f32(1), dt * 10)
@@ -452,11 +515,13 @@ fn gain_exp(n int) {
 		s.exp -= s.max_exp
 		s.max_exp = int(f32(s.max_exp) * 1.35)
 		s.level++
-		s.max_hp += 35
-		s.hp = s.max_hp
 		s.max_mp += 40
 		s.mp = s.max_mp
-		s.atk += 14
+		// HP/ATK come from the level through the leader's hero multipliers
+		h := hero_def(s.hero_ids[s.leader])
+		s.max_hp = int(f32(180 + (s.level - 10) * 35) * h.hp_mult)
+		s.atk = int(f32(68 + (s.level - 10) * 14) * h.atk_mult)
+		s.hp = s.max_hp
 		if s.level % 3 == 0 && s.realm < realms.len - 1 {
 			s.realm++
 		}

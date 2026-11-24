@@ -1,0 +1,387 @@
+# Quỷ Cốc Bát Hoang 3D — the floating peak of Quỷ Cốc Sơn, the hero (FBX than_dieu),
+# and the full wuxia HUD. Design reference: qu_c_c_b_t_hoang_3d.html.
+node Main {
+  Environment3D { sky = [22, 50, 56]  ground = [29, 43, 36]  ambient = 0.62  fog_color = [27, 59, 66]  fog_density = 0.02 }
+  node Sun {
+    DirectionalLight3D { direction = [-0.45, -1, -0.4]  color = [255, 241, 214]  intensity = 1.2 }
+  }
+  node Camera {
+    Transform3D { position = [30, 26, 30] }
+    Camera3D { fov = 34  near = 0.5  far = 400 }
+    FollowIsoCamera { }
+  }
+  node World {
+    WorldBuilder { }
+    WaveSpawner { }
+    node Platform {
+      Transform3D { position = [0, -1.1, 0]  scale = [50, 2.2, 50] }
+      MeshRenderer3D { mesh = "cylinder"  color = [37, 56, 52]  pattern = "noise" }
+    }
+    node UnderRock {
+      Transform3D { position = [0, -14, 0]  rotation = [180, 0, 0]  scale = [47, 24, 47] }
+      MeshRenderer3D { mesh = "cone"  color = [38, 53, 56]  pattern = "noise" }
+    }
+    node Plaza {
+      Transform3D { position = [0, 0.02, 0]  scale = [18, 1, 18] }
+      MeshRenderer3D { mesh = "grid"  grid_cells = 6  color = [66, 80, 82]  pattern = "tiles" }
+    }
+    node Hero {
+      Transform3D { position = [0, 0, 6] }
+      SkinnedModel3D { model = @asset("a3d0f8b1")  rim = 0.25 }
+      HeroController { }
+      PlayerCombat { }
+      node Sword {
+        Transform3D { rotation = [-70, 0, 0] }
+        BoneAttach3D { bone = "RightHand"  offset = [0, -0.1, 0.1] }
+        node Blade {
+          Transform3D { position = [0, -0.35, 0]  scale = [0.32, 1.65, 0.07] }
+          MeshRenderer3D { mesh = "cube"  color = [118, 130, 135]  rim = 0.3 }
+        }
+        node Edge {
+          Transform3D { position = [0, -0.32, 0]  scale = [0.1, 1.5, 0.09] }
+          MeshRenderer3D { mesh = "cube"  color = [186, 196, 201] }
+        }
+        node Tip {
+          Transform3D { position = [0, -1.38, 0]  rotation = [180, 45, 0]  scale = [0.45, 0.42, 0.45] }
+          MeshRenderer3D { mesh = "cone"  color = [186, 196, 201] }
+        }
+        node Guard {
+          Transform3D { position = [0, 0.5, 0]  scale = [0.56, 0.14, 0.16] }
+          MeshRenderer3D { mesh = "cube"  color = [118, 130, 135] }
+        }
+        node Hilt {
+          Transform3D { position = [0, 0.82, 0]  scale = [0.13, 0.52, 0.13] }
+          MeshRenderer3D { mesh = "cylinder"  color = [92, 54, 41] }
+        }
+        node Pommel {
+          Transform3D { position = [0, 1.1, 0]  scale = [0.19, 0.19, 0.19] }
+          MeshRenderer3D { mesh = "sphere"  color = [118, 130, 135] }
+        }
+      }
+      node Dust {
+        Particles3D { preset = "dust" }
+      }
+      node Halo {
+        Transform3D { position = [0, 0.05, 0]  scale = [1.5, 1.5, 1.5] }
+        Spin3D { speed = [0, 90, 0] }
+        MeshRenderer3D { mesh = "ring"  color = [103, 65, 217, 140]  blend = "additive"  unlit = true }
+      }
+      node Halo2 {
+        Transform3D { position = [0, 0.07, 0]  scale = [1.1, 1.1, 1.1] }
+        Spin3D { speed = [0, -140, 0] }
+        MeshRenderer3D { mesh = "ring"  color = [177, 151, 252, 170]  blend = "additive"  unlit = true }
+      }
+      node Halo3 {
+        Transform3D { position = [0, 0.09, 0]  scale = [0.7, 0.7, 0.7] }
+        Spin3D { speed = [0, 200, 0] }
+        MeshRenderer3D { mesh = "ring"  color = [208, 191, 255, 200]  blend = "additive"  unlit = true }
+      }
+    }
+  }
+
+  # ---------------- HUD ----------------
+  node HUD {
+    Canvas { }
+    HUDSync { }
+    WorldMapUI { }
+    node Floats { }
+    node TopLeft {
+      Panel { color = [16, 24, 26, 212]  radius = 10  border_color = [212, 175, 106, 150]  border_width = 1  block_input = false }
+      UITransform { size = [330, 100] }
+      Widget { align_left = true  left = 12  align_top = true  top = 12 }
+      node Avatar {
+        Panel { color = [43, 57, 62, 255]  radius = 32  border_color = [212, 175, 106, 255]  border_width = 2  block_input = false }
+        UITransform { size = [64, 64] }
+        Widget { align_left = true  left = 10  align_top = true  top = 18 }
+        Label { text = "Quỷ"  size = 22  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 2] }
+        UITransform { size = [64, 64] }
+      }
+      node LvBadge {
+        Panel { color = [26, 34, 36, 255]  radius = 12  border_color = [212, 175, 106, 255]  border_width = 1  block_input = false }
+        UITransform { size = [26, 26] }
+        Widget { align_left = true  left = 2  align_bottom = true  bottom = 4 }
+        Label { text = "10"  bind = "level"  bind_format = "{}"  size = 13  color = [255, 224, 130]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [26, 26] }
+      }
+      node Name {
+        Widget { align_left = true  left = 84  align_top = true  top = 12 }
+        Label { text = "Quỷ Cốc"  size = 17  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 2] }
+      }
+      node Realm {
+        Widget { align_left = true  left = 190  align_top = true  top = 14 }
+        Label { text = "Trúc Cơ Kỳ"  size = 12  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node HpBar {
+        UITransform { size = [226, 16] }
+        Widget { align_left = true  left = 84  align_top = true  top = 42 }
+        ProgressBar { bind = "hp"  bind_max_key = "max_hp"  progress = 1  fill_color = [217, 56, 41, 255]  back_color = [10, 12, 14, 215]  radius = 3 }
+      }
+      node HpText {
+        Widget { align_left = true  left = 84  align_top = true  top = 42 }
+        UITransform { size = [226, 16] }
+        Label { text = "180/180"  size = 11  color = [255, 255, 255, 235]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+        UITransform { size = [226, 16] }
+      }
+      node MpBar {
+        UITransform { size = [226, 12] }
+        Widget { align_left = true  left = 84  align_top = true  top = 62 }
+        ProgressBar { bind = "mp"  bind_max_key = "max_mp"  progress = 1  fill_color = [34, 139, 230, 255]  back_color = [10, 12, 14, 215]  radius = 3 }
+      }
+      node MpText {
+        Widget { align_left = true  left = 84  align_top = true  top = 62 }
+        UITransform { size = [226, 12] }
+        Label { text = "426/426"  size = 10  color = [255, 255, 255, 235]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+        UITransform { size = [226, 12] }
+      }
+      node ExpBar {
+        UITransform { size = [226, 6] }
+        Widget { align_left = true  left = 84  align_top = true  top = 80 }
+        ProgressBar { bind = "exp"  bind_max_key = "max_exp"  progress = 0  fill_color = [255, 212, 59, 255]  back_color = [10, 12, 14, 215]  radius = 2 }
+      }
+      node BuffAura {
+        active = false
+        Widget { align_left = true  left = 16  align_bottom = true  bottom = 6 }
+        Label { text = "Kim Thân"  size = 11  color = [255, 224, 130]  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+      }
+      node BuffRage {
+        active = false
+        Widget { align_left = true  left = 90  align_bottom = true  bottom = 6 }
+        Label { text = "Bạo Linh"  size = 11  color = [255, 146, 43]  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+      }
+    }
+    node Minimap {
+      Panel { color = [16, 24, 26, 212]  radius = 8  border_color = [212, 175, 106, 150]  border_width = 1  block_input = false }
+      UITransform { size = [150, 166] }
+      Widget { align_right = true  right = 12  align_top = true  top = 12 }
+      node Title {
+        Widget { align_left = true  left = 10  align_top = true  top = 6 }
+        Label { text = "Quỷ Cốc Sơn"  size = 11  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node Map {
+        Panel { color = [13, 28, 30, 255]  radius = 6  border_color = [110, 85, 48, 180]  border_width = 1  block_input = false }
+        UITransform { size = [128, 128] }
+        Widget { align_left = true  left = 11  align_top = true  top = 22 }
+      }
+      node Zoom {
+        Widget { align_left = true  left = 42  align_bottom = true  bottom = 6 }
+        Label { text = "35%"  size = 11  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+    }
+    node BtnBossTop {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [62, 40] }
+      Widget { align_right = true  right = 170  align_top = true  top = 12 }
+      Label { text = "Phó bản"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [62, 40] }
+      Button { }
+    }
+    node BtnBreak {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [62, 40] }
+      Widget { align_right = true  right = 238  align_top = true  top = 12 }
+      Label { text = "Đột phá"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [62, 40] }
+      Button { }
+    }
+    node BtnCam {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [62, 40] }
+      Widget { align_right = true  right = 306  align_top = true  top = 12 }
+      Label { text = "Góc 3D"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [62, 40] }
+      Button { }
+    }
+    node QuestPanel {
+      Panel { color = [16, 24, 26, 212]  radius = 8  border_color = [212, 175, 106, 150]  border_width = 1  block_input = false }
+      UITransform { size = [212, 156] }
+      Widget { align_right = true  right = 12  align_top = true  top = 184 }
+      node Header {
+        Widget { align_left = true  left = 10  align_top = true  top = 6 }
+        Label { text = "Nhiệm vụ & Phó bản"  size = 12  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node QuestText {
+        Widget { align_left = true  left = 10  align_top = true  top = 26 }
+        UITransform { size = [192, 26] }
+        Label { text = "Tiêu diệt Yêu Thú (0/15)"  size = 11  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [192, 26] }
+      }
+      node BtnSwarm {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [190, 26] }
+        Widget { align_left = true  left = 10  align_top = true  top = 58 }
+        Label { text = "Hoa Đào Phá Đặc"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [190, 26] }
+        Button { }
+      }
+      node BtnElite {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [190, 26] }
+        Widget { align_left = true  left = 10  align_top = true  top = 90 }
+        Label { text = "Bát Hoang Bí Cảnh"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [190, 26] }
+        Button { }
+      }
+      node BtnBoss {
+        Panel { color = [52, 28, 26, 245]  radius = 5  border_color = [255, 107, 107, 200]  border_width = 1 }
+        UITransform { size = [190, 26] }
+        Widget { align_left = true  left = 10  align_top = true  top = 122 }
+        Label { text = "Ma Tôn Giáng Lâm"  size = 11  color = [255, 135, 135]  align = "center"  valign = "middle" }
+        UITransform { size = [190, 26] }
+        Button { }
+      }
+    }
+    node Banner {
+      Widget { align_center_x = true  center_x = 0  align_top = true  top = 80 }
+      UITransform { size = [760, 34] }
+      Label { text = ""  size = 18  color = [255, 224, 130]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 2] }
+      UITransform { size = [760, 34] }
+    }
+    node Pills {
+      Widget { align_center_x = true  center_x = 0  align_bottom = true  bottom = 96 }
+      node PillHp {
+        Panel { color = [43, 28, 14, 245]  radius = 14  border_color = [140, 109, 63, 220]  border_width = 1 }
+        UITransform { size = [96, 26] }
+        Widget { align_center_x = true  center_x = -104  align_bottom = true  bottom = 96 }
+        Label { text = "Huyết Đan x10"  size = 10  color = [255, 135, 135]  align = "center"  valign = "middle" }
+        UITransform { size = [96, 26] }
+        Button { }
+      }
+      node PillMp {
+        Panel { color = [14, 28, 43, 245]  radius = 14  border_color = [140, 109, 63, 220]  border_width = 1 }
+        UITransform { size = [96, 26] }
+        Widget { align_center_x = true  center_x = 0  align_bottom = true  bottom = 96 }
+        Label { text = "Tụ Linh Đan x8"  size = 10  color = [116, 192, 252]  align = "center"  valign = "middle" }
+        UITransform { size = [96, 26] }
+        Button { }
+      }
+      node PillRage {
+        Panel { color = [43, 36, 14, 245]  radius = 14  border_color = [140, 109, 63, 220]  border_width = 1 }
+        UITransform { size = [96, 26] }
+        Widget { align_center_x = true  center_x = 104  align_bottom = true  bottom = 96 }
+        Label { text = "Bạo Linh Phù x5"  size = 10  color = [255, 224, 130]  align = "center"  valign = "middle" }
+        UITransform { size = [96, 26] }
+        Button { }
+      }
+    }
+    node Slots {
+      node Slot0 {
+        Panel { color = [24, 32, 36, 235]  radius = 6  border_color = [168, 132, 76, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = -203  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "SPC"  size = 9  color = [213, 197, 161]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot1 {
+        Panel { color = [24, 32, 36, 235]  radius = 6  border_color = [168, 132, 76, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = -145  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "1"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot2 {
+        Panel { color = [24, 32, 36, 235]  radius = 6  border_color = [168, 132, 76, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = -87  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "2"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot3 {
+        Panel { color = [42, 38, 20, 245]  radius = 6  border_color = [255, 212, 59, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = -29  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "3"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot4 {
+        Panel { color = [24, 32, 36, 235]  radius = 6  border_color = [168, 132, 76, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = 29  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "4"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot5 {
+        Panel { color = [24, 32, 36, 235]  radius = 6  border_color = [168, 132, 76, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = 87  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "5"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+      node Slot6 {
+        Panel { color = [46, 34, 16, 245]  radius = 6  border_color = [255, 146, 43, 230]  border_width = 1 }
+        UITransform { size = [52, 52] }
+        Widget { align_center_x = true  center_x = 145  align_bottom = true  bottom = 26 }
+        node Key {
+          Widget { align_left = true  left = 4  align_top = true  top = 2 }
+          Label { text = "6"  size = 9  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        }
+        node Cd {
+          Widget { align_left = true  left = 0  align_top = true  top = 0 }
+          UITransform { size = [52, 52] }
+          Label { text = ""  size = 16  color = [255, 212, 59]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 190]  shadow_offset = [1, 1] }
+          UITransform { size = [52, 52] }
+        }
+        Button { }
+      }
+    }
+    node Help {
+      Widget { align_center_x = true  center_x = 0  align_bottom = true  bottom = 4 }
+      UITransform { size = [1100, 20] }
+      Label { text = "WASD di chuyển · Click đi/đánh · 1-6 tuyệt kỹ · Space chém · R hồi huyết · M địa đồ · T đội hình · F1-F3 đổi nhân vật · [ ] chuyển map · Q-E/kéo chuột xoay · lăn zoom"  size = 13  color = [214, 197, 161, 225]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
+      UITransform { size = [1100, 20] }
+    }
+  }
+}

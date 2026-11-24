@@ -22,6 +22,7 @@ fn main() {
 		app_id:     'quycoc-bat-hoang-3d'
 		background: core.rgba(9, 19, 22, 255)
 	) or {
+		os.write_file(os.join_path(os.temp_dir(), 'qc_err.txt'), '${err}') or {}
 		eprintln(err)
 		exit(1)
 	}
@@ -41,6 +42,9 @@ fn main() {
 	game.registry.register[GiantSword]()
 	game.registry.register[FloatText]()
 	game.registry.register[HUDSync]()
+	game.registry.register[WorldMapUI]()
+	game.registry.register[HeroMember]()
+	game.registry.register[CompanionAI]()
 
 	init_state()
 	game.run()
