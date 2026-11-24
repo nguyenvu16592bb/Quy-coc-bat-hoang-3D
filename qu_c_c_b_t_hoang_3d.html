@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quỷ Cốc Bát Hoang 3D - Wuxia Action RPG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #091316;
+      font-family: 'Noto Serif', serif;
+      color: #f3e6c8;
+    }
+
+    /* 16:9 Widescreen Container centered with ornate border */
+    #viewport-wrapper {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #11262a 0%, #060c0e 100%);
+    }
+
+    #game-frame {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw; /* 16:9 ratio */
+      max-height: 100vh;
+      max-width: 177.78vh; /* 16:9 ratio */
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(212, 175, 106, 0.35);
+      background: #142b30;
+    }
+
+    #three-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    /* Wuxia Ornate UI Frames */
+    .wuxia-panel {
+      background: linear-gradient(180deg, rgba(20, 27, 30, 0.88) 0%, rgba(12, 17, 19, 0.92) 100%);
+      border: 1px solid #8c6d3f;
+      box-shadow: inset 0 0 12px rgba(212, 175, 106, 0.15), 0 4px 16px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+    }
+
+    .wuxia-gold-text {
+      color: #f5d896;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(245, 216, 150, 0.3);
+    }
+
+    /* HP & MP Bars */
+    .bar-bg {
+      background: rgba(10, 12, 14, 0.85);
+      border: 1px solid #6e5530;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+    }
+    .hp-fill {
+      background: linear-gradient(90deg, #8e1c1c 0%, #d93829 60%, #ff6659 100%);
+      transition: width 0.18s ease-out;
+    }
+    .mp-fill {
+      background: linear-gradient(90deg, #134e7a 0%, #228be6 60%, #66d9e8 100%);
+      transition: width 0.18s ease-out;
+    }
+
+    /* Skill Slot Styling */
+    .skill-slot {
+      position: relative;
+      background: radial-gradient(circle at center, #252d30 0%, #101416 100%);
+      border: 1.5px solid #a8844c;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 3px 8px rgba(0,0,0,0.8);
+      transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .skill-slot:hover {
+      border-color: #ffe082;
+      box-shadow: 0 0 14px rgba(255, 213, 79, 0.55), inset 0 0 8px rgba(255, 213, 79, 0.3);
+      transform: translateY(-2px);
+    }
+    .skill-slot:active {
+      transform: scale(0.94);
+    }
+    .skill-cd-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 8, 10, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #ffd54f;
+      text-shadow: 0 1px 4px #000;
+      pointer-events: none;
+    }
+
+    /* Floating 3D Combat Text */
+    .floating-dmg {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+      animation: floatUpFade 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      z-index: 30;
+    }
+    .dmg-normal {
+      color: #ff6b35;
+      font-size: clamp(14px, 1.3vw, 20px);
+      text-shadow: 0 2px 0 #3b0d00, -1px -1px 0 #3b0d00, 1px -1px 0 #3b0d00, -1px 1px 0 #3b0d00, 1px 1px 0 #3b0d00;
+    }
+    .dmg-crit {
+      color: #ff9e1b;
+      font-size: clamp(17px, 1.65vw, 25px);
+      text-shadow: 0 2px 0 #4a1200, 0 0 10px rgba(255, 170, 0, 0.85), -1px -1px 0 #4a1200, 1px 1px 0 #4a1200;
+    }
+    .dmg-dodge {
+      color: #38d9ff;
+      font-size: clamp(14px, 1.3vw, 20px);
+      font-style: italic;
+      text-shadow: 0 2px 0 #002b3d, 0 0 8px rgba(56, 217, 255, 0.75);
+    }
+    .dmg-heal {
+      color: #51cf66;
+      font-size: clamp(14px, 1.3vw, 20px);
+      text-shadow: 0 2px 0 #082e10;
+    }
+
+    @keyframes floatUpFade {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -20%) scale(0.7);
+      }
+      18% {
+        opacity: 1;
+        transform: translate(-50%, -65%) scale(1.12);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -155%) scale(0.95);
+      }
+    }
+
+    /* Custom Scrollbar for Quest Box */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #8c6d3f;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport-wrapper">
+    <div id="game-frame">
+      <!-- 3D WebGL Canvas -->
+      <canvas id="three-canvas"></canvas>
+
+      <!-- Floating Combat Numbers Container -->
+      <div id="floating-text-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+      <!-- TOP-LEFT: Character Status Frame (Quỷ Cốc) -->
+      <div class="absolute top-3 left-3 z-20 flex items-start gap-2.5 pointer-events-auto">
+        <!-- Circular Chibi Avatar Portrait -->
+        <div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#d4af6a] bg-gradient-to-b from-[#2b393e] to-[#111719] shadow-lg flex items-center justify-center overflow-visible">
+          <svg viewBox="0 0 100 100" class="w-full h-full rounded-full overflow-hidden">
+            <defs>
+              <radialGradient id="bgPortrait" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#3a5258" />
+                <stop offset="100%" stop-color="#141d20" />
+              </radialGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#bgPortrait)" />
+            <!-- Greatsword hilt behind -->
+            <rect x="16" y="18" width="8" height="36" rx="3" transform="rotate(-38 20 35)" fill="#5c3a2e" stroke="#221510" stroke-width="2"/>
+            <rect x="24" y="34" width="22" height="6" rx="2" transform="rotate(-38 35 37)" fill="#4a5559" stroke="#1b2224" stroke-width="2"/>
+            <!-- Ponytail -->
+            <path d="M55 15 C78 8, 86 28, 76 44 C70 35, 62 32, 54 32 Z" fill="#3a2820" stroke="#1e130f" stroke-width="2"/>
+            <!-- Tunic -->
+            <path d="M26 95 C28 74, 72 74, 74 95 Z" fill="#cfd6d9" stroke="#232a2d" stroke-width="2"/>
+            <path d="M36 76 L58 95 L44 95 L32 80 Z" fill="#7a492e" />
+            <!-- Head -->
+            <rect x="31" y="32" width="38" height="38" rx="16" fill="#f7cfb4" stroke="#3a241b" stroke-width="2"/>
+            <!-- Hair & White Streak -->
+            <path d="M29 46 C27 25, 42 18, 53 20 C67 21, 73 32, 71 48 C68 38, 63 34, 56 34 C48 34, 42 36, 35 42 Z" fill="#3a2820" />
+            <path d="M45 20 C49 25, 50 32, 47 39 C43 34, 42 26, 45 20 Z" fill="#f2f4f5" />
+            <!-- Determined Eyebrows & Eyes -->
+            <path d="M36 45 L46 48" stroke="#231712" stroke-width="3" stroke-linecap="round"/>
+            <path d="M64 45 L54 48" stroke="#231712" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="42" cy="53" r="3.5" fill="#2b1b14"/>
+            <circle cx="41" cy="52" r="1.2" fill="#ffffff"/>
+            <circle cx="58" cy="53" r="3.5" fill="#2b1b14"/>
+            <circle cx="57" cy="52" r="1.2" fill="#ffffff"/>
+            <!-- Confident smirk -->
+            <path d="M46 62 Q50 64 55 61" fill="none" stroke="#6b3e2e" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <!-- Level Badge -->
+          <div id="hud-level" class="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-[#1a2224] border border-[#d4af6a] text-[11px] font-bold text-[#ffe082] flex items-center justify-center shadow">
+            10
+          </div>
+        </div>
+
+        <!-- Name, Bars, Realm & Buffs -->
+        <div class="flex flex-col gap-1 min-w-[165px] sm:min-w-[205px]">
+          <div class="flex items-center justify-between px-1">
+            <span class="font-bold text-sm sm:text-base wuxia-gold-text tracking-wide">Quỷ Cốc</span>
+            <span id="hud-realm" class="text-[11px] px-1.5 py-0.5 rounded bg-[#233236]/90 border border-[#6e8b8e] text-[#9be7ff]">Trúc Cơ Kỳ</span>
+          </div>
+
+          <!-- HP Bar -->
+          <div class="bar-bg relative h-4 rounded-sm overflow-hidden">
+            <div id="hud-hp-bar" class="hp-fill h-full w-full"></div>
+            <div id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white drop-shadow">
+              180/180
+            </div>
+          </div>
+
+          <!-- MP Bar -->
+          <div class="bar-bg relative h-3.5 rounded-sm overflow-hidden">
+            <div id="hud-mp-bar" class="mp-fill h-full w-full"></div>
+            <div id="hud-mp-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow">
+              426/426
+            </div>
+          </div>
+
+          <!-- Buffs & Camera Hint -->
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <div class="w-5 h-5 rounded border border-[#d4af6a] bg-[#3b1c0e] flex items-center justify-center text-[11px]" title="Kiếm Tâm Thông Minh: +15% Bạo Kích">🔥</div>
+            <div id="buff-aura-icon" class="hidden w-5 h-5 rounded border border-[#ffe082] bg-[#523c08] flex items-center justify-center text-[11px] animate-pulse" title="Cảnh Giới Đột Phá: Tăng Công & Tốc Độ">⚡</div>
+            <span class="text-[10px] text-[#b4c8c9] bg-black/45 px-1.5 py-0.5 rounded border border-white/10">
+              Chuột phải / Q-E: Xoay 3D
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP-RIGHT: Action Icons & Minimap (Zoom 35%) -->
+      <div class="absolute top-3 right-3 z-20 flex items-start gap-2.5 pointer-events-auto">
+        <!-- Quick Menu Buttons -->
+        <div class="hidden md:flex items-center gap-1.5 pt-1">
+          <button onclick="spawnDungeonWave('boss')" class="wuxia-panel px-2.5 py-1.5 rounded flex flex-col items-center hover:border-[#ffe082] transition cursor-pointer">
+            <span class="text-sm">⚔️</span>
+            <span class="text-[10px] text-[#f5d896]">Phó bản</span>
+          </button>
+          <button onclick="triggerBreakthrough()" class="wuxia-panel px-2.5 py-1.5 rounded flex flex-col items-center hover:border-[#ffe082] transition cursor-pointer relative">
+            <span class="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-0.5 animate-ping"></span>
+            <span class="text-sm">☯️</span>
+            <span class="text-[10px] text-[#f5d896]">Đột phá</span>
+          </button>
+          <button onclick="toggleCameraPreset()" class="wuxia-panel px-2.5 py-1.5 rounded flex flex-col items-center hover:border-[#ffe082] transition cursor-pointer">
+            <span class="text-sm">🎥</span>
+            <span class="text-[10px] text-[#f5d896]">Góc 3D</span>
+          </button>
+        </div>
+
+        <!-- Minimap Box -->
+        <div class="wuxia-panel rounded p-1.5 flex flex-col items-center w-28 sm:w-36">
+          <div class="w-full flex items-center justify-between text-[10px] text-[#f5d896] px-1 pb-1 border-b border-[#8c6d3f]/40">
+            <span class="font-semibold">Quỷ Cốc Sơn</span>
+            <span class="text-[#7ee8fa]">Kênh 1</span>
+          </div>
+          <div class="relative w-24 h-24 sm:w-32 sm:h-32 my-1 rounded overflow-hidden border border-[#6e5530] bg-[#0d1c1e]">
+            <canvas id="minimap-canvas" width="128" height="128" class="w-full h-full"></canvas>
+          </div>
+          <div class="w-full flex items-center justify-between text-[10px] px-1 text-[#d5c5a1]">
+            <span class="flex items-center gap-1">🔍 Zoom</span>
+            <span id="hud-zoom-val" class="font-bold text-[#ffe082]">35%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Nhiệm vụ & Phó bản -->
+      <div id="right-quest-panel" class="hidden sm:flex flex-col gap-2 absolute top-44 right-3 z-20 w-52 pointer-events-auto">
+        <!-- Quest Box -->
+        <div class="wuxia-panel rounded p-2.5">
+          <div class="flex items-center justify-between border-b border-[#8c6d3f]/50 pb-1 mb-1.5">
+            <span class="text-xs font-bold wuxia-gold-text flex items-center gap-1">❖ Nhiệm vụ</span>
+            <span class="text-[10px] text-[#8ce99a]">Chính tuyến</span>
+          </div>
+          <div id="quest-item-1" class="text-[11px] leading-snug text-[#e8dec8] flex items-start gap-1.5 mb-1.5">
+            <span id="quest-check-1" class="text-[#ffd43b]">◆</span>
+            <span>Tiêu diệt Yêu Thú Quỷ Cốc (<b id="quest-kill-count" class="text-[#ffe082]">0</b>/15)</span>
+          </div>
+          <div class="text-[11px] leading-snug text-[#b2c2c4] flex items-start gap-1.5">
+            <span class="text-[#74c0fc]">◇</span>
+            <span>Hộ pháp Trận Pháp Bát Hoang</span>
+          </div>
+        </div>
+
+        <!-- Dungeon / Wave Summoner Box -->
+        <div class="wuxia-panel rounded p-2.5">
+          <div class="flex items-center justify-between border-b border-[#8c6d3f]/50 pb-1 mb-1.5">
+            <span class="text-xs font-bold wuxia-gold-text flex items-center gap-1">❖ Phó bản</span>
+            <span class="text-[10px] text-[#ffa94d]">Khiêu chiến</span>
+          </div>
+          <ul class="space-y-1 text-[11px]">
+            <li onclick="spawnDungeonWave('swarm')" class="cursor-pointer hover:text-[#ffe082] text-[#d6ccb8] flex items-center justify-between py-0.5 px-1 rounded hover:bg-white/5">
+              <span>✦ Hoa đào phá đặc</span>
+              <span class="text-[9px] text-[#74c0fc]">[Gọi quái]</span>
+            </li>
+            <li onclick="spawnDungeonWave('elite')" class="cursor-pointer hover:text-[#ffe082] text-[#d6ccb8] flex items-center justify-between py-0.5 px-1 rounded hover:bg-white/5">
+              <span>✦ Bát Hoang Bí Cảnh</span>
+              <span class="text-[9px] text-[#ffa94d]">[Tinh anh]</span>
+            </li>
+            <li onclick="spawnDungeonWave('boss')" class="cursor-pointer hover:text-[#ffe082] text-[#ff8787] flex items-center justify-between py-0.5 px-1 rounded hover:bg-white/5 font-semibold">
+              <span>✦ Ma Tôn Giáng Lâm</span>
+              <span class="text-[9px] text-[#ff6b6b]">[BOSS]</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- SYSTEM TOAST BANNER (Center Top) -->
+      <div id="system-banner" class="pointer-events-none absolute top-20 left-1/2 -translate-x-1/2 z-30 opacity-0 transition-opacity duration-300">
+        <div class="px-5 py-1.5 rounded-full bg-gradient-to-r from-transparent via-[#2b1e12]/90 to-transparent border-y border-[#d4af6a] text-xs sm:text-sm font-bold text-[#ffe082] tracking-wider shadow-lg whitespace-nowrap">
+          <span id="system-banner-text">Bát Hoang Kiếm Khí Khai Mở!</span>
+        </div>
+      </div>
+
+      <!-- BOTTOM-CENTER: Wuxia Skill Bar & Consumables -->
+      <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 pointer-events-auto w-full max-w-[95%]">
+        <!-- Top Mini Pills / Spirit Orbs Row -->
+        <div class="flex items-center gap-2">
+          <button onclick="useConsumable('hp')" class="skill-slot w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm" title="Hồi Huyết Đan (Phím Q / Click)">
+            <span>🧪</span>
+            <span id="pill-hp-count" class="absolute -bottom-1 -right-1 text-[9px] bg-black/85 px-1 rounded text-[#ff8787] font-bold border border-[#8c6d3f]">10</span>
+          </button>
+          <button onclick="useConsumable('mp')" class="skill-slot w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm" title="Tụ Linh Đan (Hồi MP)">
+            <span>🔮</span>
+            <span id="pill-mp-count" class="absolute -bottom-1 -right-1 text-[9px] bg-black/85 px-1 rounded text-[#74c0fc] font-bold border border-[#8c6d3f]">8</span>
+          </button>
+          <button onclick="useConsumable('rage')" class="skill-slot w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm" title="Bạo Linh Phù (Tăng Bạo Kích)">
+            <span>📜</span>
+            <span id="pill-rage-count" class="absolute -bottom-1 -right-1 text-[9px] bg-black/85 px-1 rounded text-[#ffe082] font-bold border border-[#8c6d3f]">5</span>
+          </button>
+        </div>
+
+        <!-- Main 7-Slot Skill Frame -->
+        <div class="wuxia-panel px-2.5 py-2 rounded-md flex items-center gap-1.5 sm:gap-2">
+          <!-- Basic Attack -->
+          <div id="skill-btn-0" onclick="castSkill(0)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center" title="Chém Thường (Chuột Trái / Space)">
+            <span class="text-lg sm:text-xl">🗡️</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#d5c5a1] font-bold">SPC</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#8ce99a]">0</span>
+            <div id="cd-0" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 1: Kiếm Khí Trảm -->
+          <div id="skill-btn-1" onclick="castSkill(1)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center" title="1: Kiếm Khí Trảm (Phóng kiếm khí vàng)">
+            <span class="text-lg sm:text-xl">☄️</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">1</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">15</span>
+            <div id="cd-1" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 2: Vạn Kiếm Quy Tông -->
+          <div id="skill-btn-2" onclick="castSkill(2)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center" title="2: Vạn Kiếm Quy Tông (Mưa phi kiếm lam)">
+            <span class="text-lg sm:text-xl">💠</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">2</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">30</span>
+            <div id="cd-2" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 3: Bát Hoang Toàn Phong (Signature Golden Whirlwind) -->
+          <div id="skill-btn-3" onclick="castSkill(3)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center border-[#ffd43b]" title="3: Bát Hoang Toàn Phong (Vòng kiếm khí vàng diện rộng)">
+            <span class="text-lg sm:text-xl">🌀</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">3</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">25</span>
+            <div id="cd-3" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 4: Linh Khí Hộ Thể -->
+          <div id="skill-btn-4" onclick="castSkill(4)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center" title="4: Kim Cang Hộ Thể (Chấn bay & hồi phục)">
+            <span class="text-lg sm:text-xl">🛡️</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">4</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">35</span>
+            <div id="cd-4" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 5: Thiên Lôi Kiếm Trận -->
+          <div id="skill-btn-5" onclick="castSkill(5)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center" title="5: Thiên Lôi Kiếm Trận (Cự kiếm giáng thế)">
+            <span class="text-lg sm:text-xl">⚡</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">5</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">50</span>
+            <div id="cd-5" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+
+          <!-- Skill 6: Pháp Tướng Kim Thân (Ultimate) -->
+          <div id="skill-btn-6" onclick="castSkill(6)" class="skill-slot w-11 h-11 sm:w-12 sm:h-12 rounded flex flex-col items-center justify-center border-[#ff922b]" title="6: Cảnh Giới Đột Phá (Bạo phát linh lực)">
+            <span class="text-lg sm:text-xl">🔥</span>
+            <span class="absolute top-0.5 left-1 text-[9px] text-[#ffe082] font-bold">6</span>
+            <span class="absolute bottom-0.5 right-1 text-[9px] text-[#74c0fc]">80</span>
+            <div id="cd-6" class="skill-cd-overlay hidden text-xs"></div>
+          </div>
+        </div>
+
+        <!-- Subtle Controls Legend -->
+        <div class="text-[10px] text-[#b4c8c9]/80 bg-black/50 px-3 py-0.5 rounded-full border border-white/10">
+          Di chuyển: <b>WASD</b> hoặc <b>Click chuột trái</b> | Tuyệt kỹ: <b>1 - 6</b> | Thu phóng: <b>Con lăn chuột (35%)</b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    /**
+     * QUỶ CỐC BÁT HOANG 3D - WUXIA ISOMETRIC ACTION RPG
+     * 100% True 3D Polygon Models, Articulated Chibi Character, 3D Combat & VFX
+     */
+
+    // ==========================================
+    // 1. GLOBAL STATE & GAME CONFIGURATION
+    // ==========================================
+    const frameEl = document.getElementById('game-frame');
+    const canvasEl = document.getElementById('three-canvas');
+    const floatingLayer = document.getElementById('floating-text-layer');
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const minimapCtx = minimapCanvas.getContext('2d');
+
+    const gameState = {
+      level: 10,
+      realmIndex: 0,
+      realms: ['Trúc Cơ Kỳ', 'Kim Đan Kỳ', 'Nguyên Anh Kỳ', 'Hóa Thần Kỳ', 'Đăng Tiên Cảnh'],
+      hp: 180,
+      maxHp: 180,
+      mp: 426,
+      maxMp: 426,
+      exp: 0,
+      maxExp: 100,
+      kills: 0,
+      questTarget: 15,
+      critChance: 0.35,
+      dodgeChance: 0.12,
+      attackPower: 68,
+      auraTimer: 0,
+      rageTimer: 0,
+      pills: { hp: 10, mp: 8, rage: 5 },
+      zoomPercent: 35, // Default 35% as requested
+      cameraYaw: Math.PI / 4, // 45 deg true isometric angle
+      cameraPitch: 0.72,      // Isometric elevation
+      targetPos: null,
+      attackAnimTimer: 0,
+      spinAnimTimer: 0,
+      autoAttackCooldown: 0,
+      hitStopTimer: 0
+    };
+
+    const skills = [
+      { id: 0, name: 'Chém Thường', mp: 0, cd: 0.45, currentCd: 0 },
+      { id: 1, name: 'Kiếm Khí Trảm', mp: 15, cd: 2.2, currentCd: 0 },
+      { id: 2, name: 'Vạn Kiếm Quy Tông', mp: 30, cd: 5.5, currentCd: 0 },
+      { id: 3, name: 'Bát Hoang Toàn Phong', mp: 25, cd: 3.5, currentCd: 0 },
+      { id: 4, name: 'Kim Cang Hộ Thể', mp: 35, cd: 7.0, currentCd: 0 },
+      { id: 5, name: 'Thiên Lôi Kiếm Trận', mp: 50, cd: 9.0, currentCd: 0 },
+      { id: 6, name: 'Cảnh Giới Đột Phá', mp: 80, cd: 15.0, currentCd: 0 }
+    ];
+
+    const keysPressed = {};
+    const enemies = [];
+    const projectiles = [];
+    const vfxList = [];
+    const floatingParticles = [];
+    const waterfalls = [];
+    const portals = [];
+
+    // ==========================================
+    // 2. THREE.JS SCENE, CAMERA & LIGHTING SETUP
+    // ==========================================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x163238);
+    scene.fog = new THREE.FogExp2(0x1b3b42, 0.0115);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasEl,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    // Perspective camera configured with narrow FOV & zoomed distance for true 3D Isometric feel
+    const camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.5, 250);
+
+    function updateRendererSize() {
+      const rect = frameEl.getBoundingClientRect();
+      renderer.setSize(rect.width, rect.height, false);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      camera.aspect = rect.width / rect.height;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', updateRendererSize);
+    updateRendererSize();
+
+    // Lighting matching the atmospheric jade/teal & warm golden spirit glow
+    const hemiLight = new THREE.HemisphereLight(0x88d4dc, 0x1d2b24, 0.85);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff1d6, 1.35);
+    dirLight.position.set(22, 38, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 5;
+    dirLight.shadow.camera.far = 95;
+    const d = 32;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    dirLight.shadow.bias = -0.0005;
+    scene.add(dirLight);
+
+    // Subtle rim light for 3D depth separation
+    const rimLight = new THREE.DirectionalLight(0x4dd0e1, 0.55);
+    rimLight.position.set(-25, 18, -22);
+    scene.add(rimLight);
+
+    // ==========================================
+    // 3. PROCEDURAL TEXTURES FOR STONE & GRASS
+    // ==========================================
+    function createTerrainTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+
+      // Mossy dark slate base
+      ctx.fillStyle = '#253834';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Organic moss & stone patches
+      for (let i = 0; i < 650; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const r = 6 + Math.random() * 24;
+        ctx.fillStyle = Math.random() > 0.45 ? 'rgba(42, 74, 62, 0.35)' : 'rgba(56, 68, 70, 0.35)';
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Cobblestone diagonal paths
+      ctx.fillStyle = '#4c595b';
+      for (let i = -512; i < 1024; i += 26) {
+        for (let w = -45; w <= 45; w += 22) {
+          const sx = i + (Math.random() - 0.5) * 6;
+          const sy = i * 0.7 + w + 120 + (Math.random() - 0.5) * 6;
+          ctx.fillStyle = Math.random() > 0.5 ? '#546365' : '#435052';
+          ctx.beginPath();
+          ctx.roundRect(sx, sy, 18, 14, 4);
+          ctx.fill();
+          ctx.strokeStyle = '#243030';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(3, 3);
+      return tex;
+    }
+
+    // ==========================================
+    // 4. TRUE 3D WORLD & WUXIA ENVIRONMENT
+    // ==========================================
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    const ARENA_RADIUS = 25;
+
+    function buildWorldEnvironment() {
+      const terrainTex = createTerrainTexture();
+
+      // Main Floating Peak Arena Platform (Multi-tiered 3D rock cylinder)
+      const topPlatformGeo = new THREE.CylinderGeometry(ARENA_RADIUS, ARENA_RADIUS - 1.5, 2.2, 32);
+      const topPlatformMat = new THREE.MeshStandardMaterial({
+        map: terrainTex,
+        roughness: 0.85,
+        metalness: 0.08
+      });
+      const topPlatform = new THREE.Mesh(topPlatformGeo, topPlatformMat);
+      topPlatform.position.y = -1.1;
+      topPlatform.receiveShadow = true;
+      worldGroup.add(topPlatform);
+
+      // Tapered rocky mountain underside
+      const underRockGeo = new THREE.ConeGeometry(ARENA_RADIUS - 1.2, 24, 18);
+      const underRockMat = new THREE.MeshStandardMaterial({
+        color: 0x263538,
+        roughness: 0.92,
+        flatShading: true
+      });
+      const underRock = new THREE.Mesh(underRockGeo, underRockMat);
+      underRock.rotation.x = Math.PI;
+      underRock.position.y = -14;
+      worldGroup.add(underRock);
+
+      // Perimeter Craggy Cliff Rocks & Mossy Boulders
+      const rockMat = new THREE.MeshStandardMaterial({
+        color: 0x3b4a4d,
+        roughness: 0.88,
+        flatShading: true
+      });
+      const mossRockMat = new THREE.MeshStandardMaterial({
+        color: 0x2e4e44,
+        roughness: 0.85,
+        flatShading: true
+      });
+
+      for (let i = 0; i < 42; i++) {
+        const angle = (i / 42) * Math.PI * 2;
+        const dist = ARENA_RADIUS - 0.5 + (Math.random() - 0.5) * 1.8;
+        const rx = Math.cos(angle) * dist;
+        const rz = Math.sin(angle) * dist;
+        const scale = 1.1 + Math.random() * 2.2;
+
+        const boulder = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(scale, 1),
+          i % 3 === 0 ? mossRockMat : rockMat
+        );
+        boulder.position.set(rx, (Math.random() - 0.3) * 1.2, rz);
+        boulder.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        boulder.scale.set(1.2, 0.75 + Math.random() * 0.6, 1.1);
+        boulder.castShadow = true;
+        boulder.receiveShadow = true;
+        worldGroup.add(boulder);
+      }
+
+      // Massive Ancient Gnarled 3D Spirit Tree (Left side like in reference image)
+      const treeGroup = new THREE.Group();
+      treeGroup.position.set(-14, 0, -9);
+
+      const barkMat = new THREE.MeshStandardMaterial({
+        color: 0x3c2e24,
+        roughness: 0.9,
+        flatShading: true
+      });
+
+      // Twisted trunk segments
+      const trunk1 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.5, 9, 10), barkMat);
+      trunk1.position.set(0, 4.2, 0);
+      trunk1.rotation.z = -0.18;
+      trunk1.castShadow = true;
+      treeGroup.add(trunk1);
+
+      const trunk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.5, 8, 9), barkMat);
+      trunk2.position.set(1.5, 10.5, 0.5);
+      trunk2.rotation.z = -0.35;
+      trunk2.castShadow = true;
+      treeGroup.add(trunk2);
+
+      // Gnarled spreading roots
+      for (let r = 0; r < 6; r++) {
+        const ra = (r / 6) * Math.PI * 2;
+        const root = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.75, 4.5, 7), barkMat);
+        root.position.set(Math.cos(ra) * 2.2, 0.7, Math.sin(ra) * 2.2);
+        root.rotation.z = Math.cos(ra) * 1.15;
+        root.rotation.x = -Math.sin(ra) * 1.15;
+        root.castShadow = true;
+        treeGroup.add(root);
+      }
+
+      // Lush Spirit Canopy Foliage Clusters
+      const leafMat = new THREE.MeshStandardMaterial({
+        color: 0x265949,
+        emissive: 0x0a261f,
+        roughness: 0.75,
+        flatShading: true
+      });
+      const canopyOffsets = [
+        [2.5, 14, 0.5, 4.2],
+        [-1.5, 12.5, 2.2, 3.4],
+        [5.5, 13, -1.5, 3.6],
+        [1.2, 16, -1.2, 3.2]
+      ];
+      canopyOffsets.forEach(([cx, cy, cz, cr]) => {
+        const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(cr, 1), leafMat);
+        foliage.position.set(cx, cy, cz);
+        foliage.scale.set(1.3, 0.7, 1.3);
+        foliage.castShadow = true;
+        treeGroup.add(foliage);
+      });
+
+      // Glowing Ethereal Silk/Spirit Ribbons draping from the ancient tree
+      const ribbonMat = new THREE.MeshBasicMaterial({
+        color: 0x8ef6e4,
+        transparent: true,
+        opacity: 0.32,
+        side: THREE.DoubleSide
+      });
+      for (let s = 0; s < 2; s++) {
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(2, 11 - s * 1.5, 1),
+          new THREE.Vector3(-4, 7.5 - s * 1.2, -4),
+          new THREE.Vector3(-12, 8.5 - s, -8),
+          new THREE.Vector3(-18, 12 - s, -12)
+        ]);
+        const ribbonGeo = new THREE.TubeGeometry(curve, 24, 0.14, 6, false);
+        const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+        treeGroup.add(ribbon);
+      }
+
+      worldGroup.add(treeGroup);
+
+      // Traditional East Asian 3D Pagoda / Shrine (Upper Right Cliff)
+      createWuxiaPagoda(12, 0.2, -13, 1.15);
+      // Distant Cliff Shrine (Left Background)
+      createWuxiaPagoda(-24, 5, -24, 0.9);
+
+      // Glowing Purple Teleportation / Summoning Magic Circles (Trận Pháp)
+      createMagicPortal(11, 0.06, -5, 2.8);
+      createMagicPortal(16, 0.06, 11, 2.2);
+
+      // Stone Lanterns & Glowing Spirit Herbs around the arena
+      const lanternCoords = [
+        [-7, 10], [8, 9], [-10, -2], [6, -11], [-3, -14], [14, 3]
+      ];
+      lanternCoords.forEach(([lx, lz]) => createStoneLantern(lx, 0, lz));
+
+      for (let h = 0; h < 22; h++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 6 + Math.random() * (ARENA_RADIUS - 8);
+        createSpiritFlower(Math.cos(a) * r, 0, Math.sin(a) * r, h % 2 === 0 ? 0xb197fc : 0xffd43b);
+      }
+
+      // Distant Floating Mountains & 3D Animated Waterfalls
+      createFloatingPeak(-36, 12, -32, 9, true);
+      createFloatingPeak(4, 18, -44, 11, true);
+      createFloatingPeak(35, 10, -28, 8.5, false);
+      createFloatingPeak(-38, -2, 16, 7.5, false);
+
+      // Ambient Rising Spirit Fireflies
+      const sparkGeo = new THREE.SphereGeometry(0.09, 6, 6);
+      for (let i = 0; i < 65; i++) {
+        const sparkMat = new THREE.MeshBasicMaterial({
+          color: i % 2 === 0 ? 0x7ef9e5 : 0xffe066,
+          transparent: true,
+          opacity: 0.75
+        });
+        const spark = new THREE.Mesh(sparkGeo, sparkMat);
+        spark.position.set(
+          (Math.random() - 0.5) * 44,
+          0.5 + Math.random() * 10,
+          (Math.random() - 0.5) * 44
+        );
+        spark.userData = {
+          baseY: spark.position.y,
+          speed: 0.6 + Math.random() * 1.2,
+          phase: Math.random() * Math.PI * 2
+        };
+        worldGroup.add(spark);
+        floatingParticles.push(spark);
+      }
+    }
+
+    function createWuxiaPagoda(x, y, z, scale = 1) {
+      const pagoda = new THREE.Group();
+      pagoda.position.set(x, y, z);
+      pagoda.scale.setScalar(scale);
+
+      // Stone foundation
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 0.8, 5.2),
+        new THREE.MeshStandardMaterial({ color: 0x455254, roughness: 0.85 })
+      );
+      base.position.y = 0.4;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      pagoda.add(base);
+
+      // Red/Dark Wood Pillars & Walls
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(3.8, 3.2, 3.8),
+        new THREE.MeshStandardMaterial({ color: 0x2c2220, roughness: 0.75 })
+      );
+      wall.position.y = 2.4;
+      wall.castShadow = true;
+      pagoda.add(wall);
+
+      const pillarMat = new THREE.MeshStandardMaterial({ color: 0x7c2d26, roughness: 0.6 });
+      [[-1.9, -1.9], [1.9, -1.9], [-1.9, 1.9], [1.9, 1.9]].forEach(([px, pz]) => {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 3.3, 8), pillarMat);
+        p.position.set(px, 2.4, pz);
+        pagoda.add(p);
+      });
+
+      // Glowing warm lantern doorway
+      const doorGlow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.3, 2.1),
+        new THREE.MeshBasicMaterial({ color: 0xffb74d })
+      );
+      doorGlow.position.set(0, 1.9, 1.92);
+      pagoda.add(doorGlow);
+
+      // Curved East Asian Tiled Roofs (2 tiers)
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: 0x1e2d33,
+        roughness: 0.55,
+        metalness: 0.2,
+        flatShading: true
+      });
+      const goldTrimMat = new THREE.MeshStandardMaterial({
+        color: 0xd4af6a,
+        metalness: 0.7,
+        roughness: 0.3
+      });
+
+      const roof1 = new THREE.Mesh(new THREE.ConeGeometry(4.3, 1.8, 4), roofMat);
+      roof1.rotation.y = Math.PI / 4;
+      roof1.position.y = 4.7;
+      roof1.castShadow = true;
+      pagoda.add(roof1);
+
+      const roof2 = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.6, 4), roofMat);
+      roof2.rotation.y = Math.PI / 4;
+      roof2.position.y = 6.1;
+      pagoda.add(roof2);
+
+      const finial = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), goldTrimMat);
+      finial.position.y = 7.1;
+      pagoda.add(finial);
+
+      worldGroup.add(pagoda);
+    }
+
+    function createMagicPortal(x, y, z, radius) {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+
+      // Outer rune ring
+      const ring1 = new THREE.Mesh(
+        new THREE.RingGeometry(radius * 0.78, radius, 32),
+        new THREE.MeshBasicMaterial({ color: 0xb197fc, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+      );
+      ring1.rotation.x = -Math.PI / 2;
+      group.add(ring1);
+
+      // Inner rune ring
+      const ring2 = new THREE.Mesh(
+        new THREE.RingGeometry(radius * 0.35, radius * 0.52, 24),
+        new THREE.MeshBasicMaterial({ color: 0xe599f7, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      ring2.rotation.x = -Math.PI / 2;
+      ring2.position.y = 0.02;
+      group.add(ring2);
+
+      // Rising translucent light cylinder
+      const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(radius * 0.75, radius * 0.85, 4.5, 24, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0x9775fa,
+          transparent: true,
+          opacity: 0.22,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        })
+      );
+      pillar.position.y = 2.25;
+      group.add(pillar);
+
+      const pLight = new THREE.PointLight(0xb197fc, 1.5, 10);
+      pLight.position.y = 1.5;
+      group.add(pLight);
+
+      worldGroup.add(group);
+      portals.push({ group, ring1, ring2, pillar });
+    }
+
+    function createStoneLantern(x, y, z) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const sMat = new THREE.MeshStandardMaterial({ color: 0x566568, roughness: 0.9 });
+
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 1.5, 6), sMat);
+      post.position.y = 0.75;
+      post.castShadow = true;
+      g.add(post);
+
+      const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.45, 0.45, 0.45),
+        new THREE.MeshBasicMaterial({ color: 0xffd43b })
+      );
+      core.position.y = 1.7;
+      g.add(core);
+
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.45, 4), sMat);
+      cap.rotation.y = Math.PI / 4;
+      cap.position.y = 2.12;
+      g.add(cap);
+
+      worldGroup.add(g);
+    }
+
+    function createSpiritFlower(x, y, z, hexColor) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const petalMat = new THREE.MeshBasicMaterial({ color: hexColor });
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.45, 4), petalMat);
+        petal.position.set(Math.cos(a) * 0.16, 0.22, Math.sin(a) * 0.16);
+        petal.rotation.z = -Math.cos(a) * 0.55;
+        petal.rotation.x = Math.sin(a) * 0.55;
+        g.add(petal);
+      }
+      worldGroup.add(g);
+    }
+
+    function createFloatingPeak(x, y, z, size, hasWaterfall) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+
+      const peakMat = new THREE.MeshStandardMaterial({
+        color: 0x264348,
+        roughness: 0.9,
+        flatShading: true
+      });
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(size, size * 2.4, 7), peakMat);
+      cone.rotation.x = Math.PI;
+      g.add(cone);
+
+      const topCap = new THREE.Mesh(
+        new THREE.CylinderGeometry(size * 0.95, size, 1.5, 7),
+        new THREE.MeshStandardMaterial({ color: 0x2d544c, roughness: 0.85, flatShading: true })
+      );
+      topCap.position.y = 0.7;
+      g.add(topCap);
+
+      if (hasWaterfall) {
+        const wfMat = new THREE.MeshBasicMaterial({
+          color: 0xa5f3fc,
+          transparent: true,
+          opacity: 0.48
+        });
+        const wf = new THREE.Mesh(new THREE.PlaneGeometry(size * 0.42, size * 3.5), wfMat);
+        wf.position.set(0, -size * 1.4, size * 0.75);
+        g.add(wf);
+        waterfalls.push(wf);
+      }
+
+      worldGroup.add(g);
+    }
+
+    buildWorldEnvironment();
+
+    // ==========================================
+    // 5. ARTICULATED 3D CHIBI PROTAGONIST ("QUỶ CỐC")
+    //    Faithful to render_1080.jpg & than dieu.png
+    // ==========================================
+    function createQuycocCharacter() {
+      const root = new THREE.Group();
+
+      // Glowing Purple/Cyan 3D Magic Aura Ring under feet (from render_1080.jpg)
+      const auraGroup = new THREE.Group();
+      auraGroup.position.y = 0.04;
+      const outerDisc = new THREE.Mesh(
+        new THREE.CircleGeometry(1.45, 32),
+        new THREE.MeshBasicMaterial({ color: 0x6741d9, transparent: true, opacity: 0.35 })
+      );
+      outerDisc.rotation.x = -Math.PI / 2;
+      auraGroup.add(outerDisc);
+
+      const midRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.85, 1.08, 32),
+        new THREE.MeshBasicMaterial({ color: 0xb197fc, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+      );
+      midRing.rotation.x = -Math.PI / 2;
+      midRing.position.y = 0.01;
+      auraGroup.add(midRing);
+
+      const innerRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.45, 0.62, 32),
+        new THREE.MeshBasicMaterial({ color: 0xd0bfff, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+      );
+      innerRing.rotation.x = -Math.PI / 2;
+      innerRing.position.y = 0.02;
+      auraGroup.add(innerRing);
+      root.add(auraGroup);
+
+      // Materials
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xf7cfb4, roughness: 0.55 });
+      const hairDarkMat = new THREE.MeshStandardMaterial({ color: 0x36241c, roughness: 0.65 });
+      const hairWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf1f3f5, roughness: 0.5 });
+      const tunicWhiteMat = new THREE.MeshStandardMaterial({ color: 0xdce2e6, roughness: 0.7 });
+      const tunicNavyMat = new THREE.MeshStandardMaterial({ color: 0x3b4d59, roughness: 0.7 });
+      const sashBrownMat = new THREE.MeshStandardMaterial({ color: 0x824930, roughness: 0.65 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x46484d, roughness: 0.8 });
+      const bootMat = new THREE.MeshStandardMaterial({ color: 0x423026, roughness: 0.75 });
+
+      const bodyPivot = new THREE.Group();
+      root.add(bodyPivot);
+
+      // --- LEGS & BOOTS ---
+      const leftLeg = new THREE.Group();
+      leftLeg.position.set(-0.24, 0.62, 0);
+      const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.36, 10), pantsMat);
+      lThigh.position.y = -0.18;
+      lThigh.castShadow = true;
+      const lBoot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.34), bootMat);
+      lBoot.position.set(0, -0.46, 0.04);
+      lBoot.castShadow = true;
+      leftLeg.add(lThigh, lBoot);
+      bodyPivot.add(leftLeg);
+
+      const rightLeg = new THREE.Group();
+      rightLeg.position.set(0.24, 0.62, 0);
+      const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.36, 10), pantsMat);
+      rThigh.position.y = -0.18;
+      rThigh.castShadow = true;
+      const rBoot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.34), bootMat);
+      rBoot.position.set(0, -0.46, 0.04);
+      rBoot.castShadow = true;
+      rightLeg.add(rThigh, rBoot);
+      bodyPivot.add(rightLeg);
+
+      // --- TORSO (Cross-Collar Martial Arts Tunic & Brown Sash) ---
+      const torsoGroup = new THREE.Group();
+      torsoGroup.position.y = 0.98;
+      bodyPivot.add(torsoGroup);
+
+      // Main tunic body (split grey-white & navy)
+      const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 0.72, 14), tunicWhiteMat);
+      chest.castShadow = true;
+      torsoGroup.add(chest);
+
+      const navyVest = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.43, 0.71, 14, 1, false, 0, Math.PI), tunicNavyMat);
+      navyVest.rotation.y = Math.PI * 0.15;
+      torsoGroup.add(navyVest);
+
+      // Diagonal Brown Chest Strap
+      const chestStrap = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.85, 0.68), sashBrownMat);
+      chestStrap.rotation.z = -0.52;
+      chestStrap.position.y = 0.04;
+      torsoGroup.add(chestStrap);
+
+      // Layered Brown Waist Sash/Belt
+      const waistBelt = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.44, 0.22, 14), sashBrownMat);
+      waistBelt.position.y = -0.22;
+      torsoGroup.add(waistBelt);
+
+      // Hanging belt tie
+      const beltTail = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.34, 0.08), sashBrownMat);
+      beltTail.position.set(0.16, -0.36, 0.38);
+      beltTail.rotation.z = -0.12;
+      torsoGroup.add(beltTail);
+
+      // --- ARMS & WRIST WRAPS ---
+      function buildArm(isLeft) {
+        const armPivot = new THREE.Group();
+        armPivot.position.set(isLeft ? -0.46 : 0.46, 0.24, 0);
+
+        const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.24, 10), isLeft ? tunicWhiteMat : tunicNavyMat);
+        sleeve.position.y = -0.1;
+        sleeve.castShadow = true;
+        armPivot.add(sleeve);
+
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.1, 0.26, 10), skinMat);
+        forearm.position.y = -0.32;
+        forearm.castShadow = true;
+        armPivot.add(forearm);
+
+        const wristWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.118, 0.118, 0.12, 10), pantsMat);
+        wristWrap.position.y = -0.36;
+        armPivot.add(wristWrap);
+
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), skinMat);
+        hand.position.y = -0.48;
+        armPivot.add(hand);
+
+        return armPivot;
+      }
+
+      const leftArm = buildArm(true);
+      const rightArm = buildArm(false);
+      torsoGroup.add(leftArm, rightArm);
+
+      // --- CHIBI HEAD, EYES & ICONIC WHITE-STREAKED PONYTAIL ---
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 0.78, 0.02);
+      torsoGroup.add(headGroup);
+
+      const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.54, 20, 20), skinMat);
+      headMesh.scale.set(1.04, 0.98, 0.98);
+      headMesh.castShadow = true;
+      headGroup.add(headMesh);
+
+      // Ears
+      [-0.53, 0.53].forEach(ex => {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), skinMat);
+        ear.position.set(ex, -0.04, 0);
+        headGroup.add(ear);
+      });
+
+      // Determined Eyebrows & Expressive Eyes
+      const browMat = new THREE.MeshBasicMaterial({ color: 0x241610 });
+      const leftBrow = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.045, 0.05), browMat);
+      leftBrow.position.set(-0.21, 0.11, 0.5);
+      leftBrow.rotation.z = -0.22;
+      const rightBrow = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.045, 0.05), browMat);
+      rightBrow.position.set(0.21, 0.11, 0.5);
+      rightBrow.rotation.z = 0.22;
+      headGroup.add(leftBrow, rightBrow);
+
+      const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x2b1912 });
+      [-0.2, 0.2].forEach(ex => {
+        const eyeBg = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 12), eyeWhiteMat);
+        eyeBg.scale.set(0.9, 1.15, 0.5);
+        eyeBg.position.set(ex, -0.02, 0.49);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 12), pupilMat);
+        pupil.scale.set(0.9, 1.15, 0.5);
+        pupil.position.set(ex, -0.02, 0.525);
+        headGroup.add(eyeBg, pupil);
+      });
+
+      // Hair Cap & Sideburns
+      const hairCap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.575, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.62),
+        hairDarkMat
+      );
+      hairCap.rotation.x = -0.25;
+      hairCap.castShadow = true;
+      headGroup.add(hairCap);
+
+      // Spiky front bangs + Signature White Hair Streak!
+      const bangGeo = new THREE.ConeGeometry(0.12, 0.34, 6);
+      const whiteBang = new THREE.Mesh(bangGeo, hairWhiteMat);
+      whiteBang.position.set(-0.1, 0.36, 0.46);
+      whiteBang.rotation.set(0.45, 0, 0.22);
+      headGroup.add(whiteBang);
+
+      const whiteSideStreak = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.38, 0.18), hairWhiteMat);
+      whiteSideStreak.position.set(-0.48, 0.26, 0.16);
+      whiteSideStreak.rotation.z = 0.28;
+      headGroup.add(whiteSideStreak);
+
+      [-0.36, 0.16, 0.36].forEach((bx, idx) => {
+        const b = new THREE.Mesh(bangGeo, hairDarkMat);
+        b.position.set(bx, 0.34, 0.44 - Math.abs(bx) * 0.2);
+        b.rotation.set(0.42, 0, -bx * 0.5);
+        headGroup.add(b);
+      });
+
+      // Tied-up High Ponytail
+      const ponytailGroup = new THREE.Group();
+      ponytailGroup.position.set(0, 0.48, -0.38);
+      const hairTie = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.04, 8, 16), hairWhiteMat);
+      hairTie.rotation.x = Math.PI / 3;
+      ponytailGroup.add(hairTie);
+
+      for (let p = 0; p < 5; p++) {
+        const tailSpike = new THREE.Mesh(
+          new THREE.ConeGeometry(0.18, 0.72, 7),
+          p === 1 ? hairWhiteMat : hairDarkMat
+        );
+        tailSpike.position.set((p - 2) * 0.08, 0.22 - Math.abs(p - 2) * 0.06, -0.22);
+        tailSpike.rotation.x = -0.85 - p * 0.08;
+        tailSpike.rotation.z = (p - 2) * 0.22;
+        tailSpike.castShadow = true;
+        ponytailGroup.add(tailSpike);
+      }
+      headGroup.add(ponytailGroup);
+
+      // --- BROAD IRON GREATSWORD (Strapped diagonally on back) ---
+      const swordGroup = new THREE.Group();
+      const steelMat = new THREE.MeshStandardMaterial({
+        color: 0x768287,
+        metalness: 0.78,
+        roughness: 0.28
+      });
+      const bladeEdgeMat = new THREE.MeshStandardMaterial({
+        color: 0xbac4c9,
+        metalness: 0.85,
+        roughness: 0.2
+      });
+      const gripMat = new THREE.MeshStandardMaterial({ color: 0x5c3629, roughness: 0.8 });
+
+      // Broad Blade
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.65, 0.06), steelMat);
+      blade.position.y = -0.35;
+      blade.castShadow = true;
+      swordGroup.add(blade);
+
+      // Fuller / Center ridge
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.5, 0.08), bladeEdgeMat);
+      ridge.position.y = -0.32;
+      swordGroup.add(ridge);
+
+      // Pointed Tip
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.225, 0.42, 4), bladeEdgeMat);
+      tip.rotation.y = Math.PI / 4;
+      tip.rotation.x = Math.PI;
+      tip.scale.set(1, 1, 0.22);
+      tip.position.y = -1.38;
+      swordGroup.add(tip);
+
+      // Crossguard
+      const guard = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.14, 0.16), steelMat);
+      guard.position.y = 0.5;
+      swordGroup.add(guard);
+
+      // Hilt & Pommel
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.52, 8), gripMat);
+      handle.position.y = 0.82;
+      swordGroup.add(handle);
+
+      const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 10), steelMat);
+      pommel.position.y = 1.1;
+      swordGroup.add(pommel);
+
+      // Default Back-holstered transform
+      function holsterSword() {
+        torsoGroup.add(swordGroup);
+        swordGroup.position.set(0.05, 0.15, -0.44);
+        swordGroup.rotation.set(0.15, 0, -0.78);
+        swordGroup.scale.setScalar(1);
+      }
+
+      // Wielded in Right Hand transform
+      function drawSword() {
+        rightArm.add(swordGroup);
+        swordGroup.position.set(0, -0.48, 0.45);
+        swordGroup.rotation.set(-Math.PI / 2, 0, 0);
+        swordGroup.scale.setScalar(1.12);
+      }
+
+      holsterSword();
+
+      return {
+        root,
+        bodyPivot,
+        torsoGroup,
+        headGroup,
+        ponytailGroup,
+        leftLeg,
+        rightLeg,
+        leftArm,
+        rightArm,
+        swordGroup,
+        auraGroup,
+        midRing,
+        innerRing,
+        holsterSword,
+        drawSword
+      };
+    }
+
+    const player = createQuycocCharacter();
+    scene.add(player.root);
+
+    // Click-to-Move Ground Target Indicator Ring
+    const moveMarker = new THREE.Mesh(
+      new THREE.RingGeometry(0.35, 0.55, 24),
+      new THREE.MeshBasicMaterial({ color: 0x51cf66, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+    );
+    moveMarker.rotation.x = -Math.PI / 2;
+    moveMarker.position.y = 0.05;
+    moveMarker.visible = false;
+    scene.add(moveMarker);
+
+    // ==========================================
+    // 6. 3D MONSTERS & BOSS FACTORY
+    // ==========================================
+    function create3DMonster(type = 'demon') {
+      const group = new THREE.Group();
+
+      const isBoss = type === 'boss';
+      const isElite = type === 'elite';
+      const scale = isBoss ? 1.85 : isElite ? 1.3 : 1.0;
+      group.scale.setScalar(scale);
+
+      const bodyColor = isBoss ? 0x4a1525 : type === 'ghoul' ? 0x4b3b63 : 0x594236;
+      const armorColor = isBoss ? 0xd9480f : isElite ? 0x7048e8 : 0x868e96;
+
+      const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.75 });
+      const boneMat = new THREE.MeshStandardMaterial({ color: 0xe9ecef, roughness: 0.5 });
+      const armorMat = new THREE.MeshStandardMaterial({ color: armorColor, metalness: 0.5, roughness: 0.4 });
+
+      // Legs
+      const lLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.55, 8), bodyMat);
+      lLeg.position.set(-0.22, 0.28, 0);
+      lLeg.castShadow = true;
+      const rLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.55, 8), bodyMat);
+      rLeg.position.set(0.22, 0.28, 0);
+      rLeg.castShadow = true;
+      group.add(lLeg, rLeg);
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.3, 0.75, 10), armorMat);
+      torso.position.y = 0.9;
+      torso.castShadow = true;
+      group.add(torso);
+
+      // Spiky Shoulder Pads
+      [-0.45, 0.45].forEach(sx => {
+        const pad = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.45, 5), boneMat);
+        pad.position.set(sx, 1.25, 0);
+        pad.rotation.z = sx < 0 ? 0.6 : -0.6;
+        group.add(pad);
+      });
+
+      // Head & Horned Bone Mask
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.36, 1), bodyMat);
+      head.position.y = 1.52;
+      head.castShadow = true;
+      group.add(head);
+
+      // Curved Demon Horns
+      [-0.26, 0.26].forEach(hx => {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.52, 6), boneMat);
+        horn.position.set(hx, 1.85, 0.05);
+        horn.rotation.z = hx < 0 ? 0.45 : -0.45;
+        horn.rotation.x = 0.25;
+        group.add(horn);
+      });
+
+      // Glowing Red Eyes
+      [-0.12, 0.12].forEach(ex => {
+        const eye = new THREE.Mesh(
+          new THREE.SphereGeometry(0.05, 6, 6),
+          new THREE.MeshBasicMaterial({ color: 0xff2a2a })
+        );
+        eye.position.set(ex, 1.54, 0.31);
+        group.add(eye);
+      });
+
+      // Demon Cleaver / Club Weapon
+      const weapon = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 1.1, 0.25),
+        new THREE.MeshStandardMaterial({ color: 0x343a40, metalness: 0.7, roughness: 0.3 })
+      );
+      weapon.position.set(0.55, 0.95, 0.35);
+      weapon.rotation.x = 0.8;
+      group.add(weapon);
+
+      // 3D Overhead Health Bar (Billboards toward camera)
+      const hpBarGroup = new THREE.Group();
+      hpBarGroup.position.y = 2.35;
+
+      const bgPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.3, 0.16),
+        new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.DoubleSide })
+      );
+      hpBarGroup.add(bgPlane);
+
+      const fillPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.24, 0.11),
+        new THREE.MeshBasicMaterial({ color: isBoss ? 0xff922b : 0xe03131, side: THREE.DoubleSide })
+      );
+      fillPlane.position.z = 0.01;
+      hpBarGroup.add(fillPlane);
+      group.add(hpBarGroup);
+
+      // Spawn position near magic portals or outer ring
+      const spawnAngle = Math.random() * Math.PI * 2;
+      const spawnRadius = 10 + Math.random() * 11;
+      group.position.set(Math.cos(spawnAngle) * spawnRadius, 0, Math.sin(spawnAngle) * spawnRadius);
+      scene.add(group);
+
+      const maxHp = isBoss ? 1400 : isElite ? 420 : 190;
+      const enemyObj = {
+        mesh: group,
+        hpBarGroup,
+        fillPlane,
+        bodyMat,
+        origColor: bodyColor,
+        type,
+        isBoss,
+        hp: maxHp,
+        maxHp,
+        speed: isBoss ? 2.4 : type === 'ghoul' ? 4.1 : 3.2,
+        damage: isBoss ? 24 : isElite ? 12 : 7,
+        attackCd: 0,
+        hitFlash: 0,
+        knockbackVel: new THREE.Vector3(),
+        animPhase: Math.random() * Math.PI * 2
+      };
+
+      enemies.push(enemyObj);
+      return enemyObj;
+    }
+
+    // Initial wave of 3D monsters
+    for (let i = 0; i < 8; i++) {
+      create3DMonster(i % 3 === 0 ? 'ghoul' : 'demon');
+    }
+
+    // ==========================================
+    // 7. 3D COMBAT VFX & SKILL IMPLEMENTATIONS
+    // ==========================================
+    function showSystemBanner(msg) {
+      const banner = document.getElementById('system-banner');
+      const text = document.getElementById('system-banner-text');
+      text.textContent = msg;
+      banner.style.opacity = '1';
+      clearTimeout(banner._timer);
+      banner._timer = setTimeout(() => {
+        banner.style.opacity = '0';
+      }, 2400);
+    }
+
+    function spawnFloatingText(worldPos, text, cssClass) {
+      const vec = worldPos.clone();
+      vec.y += 2.2;
+      vec.project(camera);
+
+      const rect = frameEl.getBoundingClientRect();
+      const x = (vec.x * 0.5 + 0.5) * rect.width;
+      const y = (-(vec.y * 0.5) + 0.5) * rect.height;
+
+      if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
+
+      const el = document.createElement('div');
+      el.className = `floating-dmg ${cssClass}`;
+      el.textContent = text;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      floatingLayer.appendChild(el);
+
+      setTimeout(() => el.remove(), 1050);
+    }
+
+    function damageEnemy(enemy, rawDamage, knockForce = 4, isSkill = false) {
+      // Dodge check
+      if (!isSkill && Math.random() < 0.08) {
+        spawnFloatingText(enemy.mesh.position, 'Né tránh', 'dmg-dodge');
+        return;
+      }
+
+      const critBonus = gameState.rageTimer > 0 ? 0.35 : 0;
+      const isCrit = Math.random() < (gameState.critChance + critBonus);
+      const auraMult = gameState.auraTimer > 0 ? 1.45 : 1.0;
+      const finalDmg = Math.round(rawDamage * auraMult * (isCrit ? 1.85 : 0.9 + Math.random() * 0.25));
+
+      enemy.hp -= finalDmg;
+      enemy.hitFlash = 0.14;
+      enemy.bodyMat.emissive.setHex(0xffaa33);
+
+      // Knockback physics away from player
+      const pushDir = new THREE.Vector3().subVectors(enemy.mesh.position, player.root.position);
+      pushDir.y = 0;
+      if (pushDir.lengthSq() > 0.001) pushDir.normalize();
+      enemy.knockbackVel.addScaledVector(pushDir, enemy.isBoss ? knockForce * 0.25 : knockForce);
+
+      // Floating combat text matching screenshot ("130", "Bạo kích 529")
+      if (isCrit) {
+        spawnFloatingText(enemy.mesh.position, `Bạo kích ${finalDmg}`, 'dmg-crit');
+      } else {
+        spawnFloatingText(enemy.mesh.position, `${finalDmg}`, 'dmg-normal');
+      }
+
+      // Update 3D HP bar
+      const ratio = Math.max(0, enemy.hp / enemy.maxHp);
+      enemy.fillPlane.scale.x = Math.max(0.001, ratio);
+      enemy.fillPlane.position.x = -(1 - ratio) * 0.62;
+
+      if (enemy.hp <= 0) {
+        killEnemy(enemy);
+      }
+    }
+
+    function killEnemy(enemy) {
+      const idx = enemies.indexOf(enemy);
+      if (idx !== -1) enemies.splice(idx, 1);
+
+      // Death burst 3D particles
+      createBurstVFX(enemy.mesh.position, enemy.isBoss ? 0xff922b : 0xb197fc, 12);
+      scene.remove(enemy.mesh);
+
+      gameState.kills++;
+      gameState.exp += enemy.isBoss ? 120 : 22;
+      document.getElementById('quest-kill-count').textContent = Math.min(gameState.kills, gameState.questTarget);
+      if (gameState.kills >= gameState.questTarget) {
+        document.getElementById('quest-check-1').textContent = '✔';
+        document.getElementById('quest-check-1').className = 'text-[#51cf66]';
+      }
+
+      if (gameState.exp >= gameState.maxExp) {
+        levelUp();
+      }
+    }
+
+    function levelUp() {
+      gameState.exp -= gameState.maxExp;
+      gameState.maxExp = Math.round(gameState.maxExp * 1.35);
+      gameState.level++;
+      gameState.maxHp += 35;
+      gameState.hp = gameState.maxHp;
+      gameState.maxMp += 40;
+      gameState.mp = gameState.maxMp;
+      gameState.attackPower += 14;
+
+      if (gameState.level % 3 === 0 && gameState.realmIndex < gameState.realms.length - 1) {
+        gameState.realmIndex++;
+      }
+
+      document.getElementById('hud-level').textContent = gameState.level;
+      document.getElementById('hud-realm').textContent = gameState.realms[gameState.realmIndex];
+      showSystemBanner(`Đột Phá Cảnh Giới! Đạt Cấp ${gameState.level} - ${gameState.realms[gameState.realmIndex]}`);
+      createGoldenWhirlwindVFX(player.root.position, 4.5, 0.9);
+    }
+
+    // --- 3D VFX BUILDERS ---
+    function createGoldenWhirlwindVFX(origin, maxRadius = 4.2, duration = 0.55) {
+      // Multi-layered glowing golden crescent rings matching the signature screenshot vortex!
+      const group = new THREE.Group();
+      group.position.copy(origin);
+      group.position.y = 0.75;
+
+      const ringMat1 = new THREE.MeshBasicMaterial({
+        color: 0xffd43b,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+      });
+      const ringMat2 = new THREE.MeshBasicMaterial({
+        color: 0xfff3bf,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide
+      });
+
+      const disc1 = new THREE.Mesh(new THREE.RingGeometry(maxRadius * 0.35, maxRadius, 36, 1, 0, Math.PI * 1.65), ringMat1);
+      disc1.rotation.x = -Math.PI / 2;
+      group.add(disc1);
+
+      const disc2 = new THREE.Mesh(new THREE.RingGeometry(maxRadius * 0.15, maxRadius * 0.75, 32, 1, Math.PI * 0.4, Math.PI * 1.5), ringMat2);
+      disc2.rotation.x = -Math.PI / 2;
+      disc2.position.y = 0.12;
+      group.add(disc2);
+
+      // 3D Outer Energy Rim
+      const torus = new THREE.Mesh(
+        new THREE.TorusGeometry(maxRadius * 0.88, 0.08, 8, 36),
+        new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.85 })
+      );
+      torus.rotation.x = Math.PI / 2;
+      group.add(torus);
+
+      scene.add(group);
+      vfxList.push({
+        type: 'whirlwind',
+        mesh: group,
+        age: 0,
+        duration,
+        update(dt) {
+          this.age += dt;
+          const t = this.age / this.duration;
+          group.position.copy(player.root.position);
+          group.position.y = 0.75;
+          group.rotation.y += dt * 18;
+          const s = 0.55 + Math.sin(t * Math.PI) * 0.55;
+          group.scale.set(s, 1, s);
+          ringMat1.opacity = 1 - t;
+          ringMat2.opacity = 1 - t;
+          torus.material.opacity = 1 - t;
+        }
+      });
+    }
+
+    function createBurstVFX(pos, colorHex, count = 10) {
+      const geo = new THREE.OctahedronGeometry(0.16);
+      for (let i = 0; i < count; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 1 });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        m.position.y += 0.8;
+        const vel = new THREE.Vector3(
+          (Math.random() - 0.5) * 8,
+          2 + Math.random() * 6,
+          (Math.random() - 0.5) * 8
+        );
+        scene.add(m);
+        vfxList.push({
+          mesh: m,
+          age: 0,
+          duration: 0.65,
+          update(dt) {
+            this.age += dt;
+            vel.y -= 14 * dt;
+            m.position.addScaledVector(vel, dt);
+            m.rotation.x += dt * 8;
+            mat.opacity = 1 - this.age / this.duration;
+          }
+        });
+      }
+    }
+
+    function spawnFlyingSwordProjectile(origin, dir, isSpiritBlue = false) {
+      const swordProj = new THREE.Group();
+      const color = isSpiritBlue ? 0x4dabf7 : 0xffd43b;
+
+      const blade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.18, 1.45, 4),
+        new THREE.MeshBasicMaterial({ color })
+      );
+      blade.rotation.x = Math.PI / 2;
+      swordProj.add(blade);
+
+      const glow = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.04, 1.7, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 })
+      );
+      glow.rotation.x = Math.PI / 2;
+      swordProj.add(glow);
+
+      swordProj.position.copy(origin);
+      swordProj.position.y = 1.05;
+      swordProj.lookAt(origin.clone().add(dir).setY(1.05));
+      scene.add(swordProj);
+
+      projectiles.push({
+        mesh: swordProj,
+        vel: dir.clone().normalize().multiplyScalar(24),
+        age: 0,
+        maxAge: 1.1,
+        damage: gameState.attackPower * 1.45,
+        hitSet: new Set()
+      });
+    }
+
+    function findNearestEnemy(maxRange = 14) {
+      let best = null;
+      let bestDist = maxRange;
+      for (const e of enemies) {
+        const d = player.root.position.distanceTo(e.mesh.position);
+        if (d < bestDist) {
+          bestDist = d;
+          best = e;
+        }
+      }
+      return best;
+    }
+
+    function faceNearestOrForward() {
+      const target = findNearestEnemy(14);
+      if (target) {
+        const dx = target.mesh.position.x - player.root.position.x;
+        const dz = target.mesh.position.z - player.root.position.z;
+        player.root.rotation.y = Math.atan2(dx, dz);
+      }
+      return new THREE.Vector3(Math.sin(player.root.rotation.y), 0, Math.cos(player.root.rotation.y));
+    }
+
+    // Cast Skills 0..6
+    function castSkill(skillIndex) {
+      const sk = skills[skillIndex];
+      if (!sk || sk.currentCd > 0) return;
+      if (gameState.mp < sk.mp) {
+        showSystemBanner('Linh lực (MP) không đủ!');
+        return;
+      }
+
+      gameState.mp -= sk.mp;
+      sk.currentCd = sk.cd;
+      const forward = faceNearestOrForward();
+
+      if (skillIndex === 0) {
+        // Basic Slash
+        gameState.attackAnimTimer = 0.38;
+        player.drawSword();
+        createGoldenWhirlwindVFX(player.root.position, 2.7, 0.32);
+        enemies.slice().forEach(e => {
+          if (player.root.position.distanceTo(e.mesh.position) <= 3.3) {
+            damageEnemy(e, gameState.attackPower, 4.5, false);
+          }
+        });
+      } else if (skillIndex === 1) {
+        // Skill 1: Kiếm Khí Trảm (3 Golden Flying Sword Beams)
+        gameState.attackAnimTimer = 0.42;
+        player.drawSword();
+        [-0.22, 0, 0.22].forEach(angleOffset => {
+          const dir = forward.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angleOffset);
+          spawnFlyingSwordProjectile(player.root.position, dir, false);
+        });
+      } else if (skillIndex === 2) {
+        // Skill 2: Vạn Kiếm Quy Tông (Sky Sword Rain on enemies)
+        gameState.attackAnimTimer = 0.45;
+        player.drawSword();
+        const center = findNearestEnemy(15)?.mesh.position.clone() || player.root.position.clone().addScaledVector(forward, 5);
+        for (let i = 0; i < 12; i++) {
+          const dropSword = new THREE.Mesh(
+            new THREE.ConeGeometry(0.16, 1.8, 4),
+            new THREE.MeshBasicMaterial({ color: 0x3bc9db })
+          );
+          dropSword.rotation.x = Math.PI;
+          const ox = center.x + (Math.random() - 0.5) * 6.5;
+          const oz = center.z + (Math.random() - 0.5) * 6.5;
+          dropSword.position.set(ox, 9 + i * 0.45, oz);
+          scene.add(dropSword);
+
+          vfxList.push({
+            mesh: dropSword,
+            age: 0,
+            duration: 0.48,
+            struck: false,
+            update(dt) {
+              this.age += dt;
+              dropSword.position.y -= 22 * dt;
+              if (dropSword.position.y <= 0.6 && !this.struck) {
+                this.struck = true;
+                createBurstVFX(new THREE.Vector3(ox, 0.2, oz), 0x4dabf7, 3);
+              }
+            }
+          });
+        }
+        enemies.slice().forEach(e => {
+          if (center.distanceTo(e.mesh.position) <= 4.8) {
+            damageEnemy(e, gameState.attackPower * 1.9, 5, true);
+          }
+        });
+      } else if (skillIndex === 3) {
+        // Skill 3: Bát Hoang Toàn Phong (Signature Golden Whirlwind AoE)
+        gameState.spinAnimTimer = 0.65;
+        player.drawSword();
+        createGoldenWhirlwindVFX(player.root.position, 4.6, 0.65);
+        enemies.slice().forEach(e => {
+          if (player.root.position.distanceTo(e.mesh.position) <= 4.9) {
+            damageEnemy(e, gameState.attackPower * 1.75, 8.5, true);
+          }
+        });
+      } else if (skillIndex === 4) {
+        // Skill 4: Kim Cang Hộ Thể (Heal + Knockback Shockwave)
+        const healAmt = Math.round(gameState.maxHp * 0.35);
+        gameState.hp = Math.min(gameState.maxHp, gameState.hp + healAmt);
+        spawnFloatingText(player.root.position, `+${healAmt} HP`, 'dmg-heal');
+        createGoldenWhirlwindVFX(player.root.position, 5.2, 0.55);
+        enemies.slice().forEach(e => {
+          if (player.root.position.distanceTo(e.mesh.position) <= 5.5) {
+            damageEnemy(e, gameState.attackPower * 1.1, 14, true);
+          }
+        });
+      } else if (skillIndex === 5) {
+        // Skill 5: Thiên Lôi Kiếm Trận (Giant Celestial Greatsword Slam)
+        const targetPos = findNearestEnemy(16)?.mesh.position.clone() || player.root.position.clone().addScaledVector(forward, 5);
+        const giantSword = new THREE.Mesh(
+          new THREE.ConeGeometry(0.95, 6.5, 4),
+          new THREE.MeshBasicMaterial({ color: 0xffec99 })
+        );
+        giantSword.rotation.x = Math.PI;
+        giantSword.position.set(targetPos.x, 12, targetPos.z);
+        scene.add(giantSword);
+
+        vfxList.push({
+          mesh: giantSword,
+          age: 0,
+          duration: 0.65,
+          impacted: false,
+          update(dt) {
+            this.age += dt;
+            if (giantSword.position.y > 2.2) {
+              giantSword.position.y -= 34 * dt;
+            } else if (!this.impacted) {
+              this.impacted = true;
+              createBurstVFX(targetPos, 0xffd43b, 18);
+              createGoldenWhirlwindVFX(targetPos, 5.5, 0.55);
+              enemies.slice().forEach(e => {
+                if (targetPos.distanceTo(e.mesh.position) <= 5.8) {
+                  damageEnemy(e, gameState.attackPower * 2.8, 12, true);
+                }
+              });
+            }
+          }
+        });
+      } else if (skillIndex === 6) {
+        // Skill 6: Cảnh Giới Đột Phá (Golden Aura Mode)
+        gameState.auraTimer = 10.0;
+        document.getElementById('buff-aura-icon').classList.remove('hidden');
+        showSystemBanner('Bát Hoang Kim Thân Kích Hoạt! (+45% Sát Thương)');
+        createGoldenWhirlwindVFX(player.root.position, 5.5, 0.8);
+      }
+    }
+
+    function useConsumable(type) {
+      if (type === 'hp' && gameState.pills.hp > 0) {
+        gameState.pills.hp--;
+        document.getElementById('pill-hp-count').textContent = gameState.pills.hp;
+        const heal = 85;
+        gameState.hp = Math.min(gameState.maxHp, gameState.hp + heal);
+        spawnFloatingText(player.root.position, `+${heal} HP`, 'dmg-heal');
+        createBurstVFX(player.root.position, 0x51cf66, 8);
+      } else if (type === 'mp' && gameState.pills.mp > 0) {
+        gameState.pills.mp--;
+        document.getElementById('pill-mp-count').textContent = gameState.pills.mp;
+        const mpGain = 160;
+        gameState.mp = Math.min(gameState.maxMp, gameState.mp + mpGain);
+        spawnFloatingText(player.root.position, `+${mpGain} MP`, 'dmg-dodge');
+        createBurstVFX(player.root.position, 0x339af0, 8);
+      } else if (type === 'rage' && gameState.pills.rage > 0) {
+        gameState.pills.rage--;
+        document.getElementById('pill-rage-count').textContent = gameState.pills.rage;
+        gameState.rageTimer = 12.0;
+        showSystemBanner('Bạo Linh Phù: Tỉ lệ Bạo Kích tăng mạnh!');
+        createBurstVFX(player.root.position, 0xff922b, 10);
+      }
+    }
+
+    function spawnDungeonWave(mode) {
+      if (mode === 'swarm') {
+        showSystemBanner('Phó Bản: Hoa Đào Phá Đặc - Yêu Thú Tràn Vào!');
+        for (let i = 0; i < 6; i++) create3DMonster('ghoul');
+      } else if (mode === 'elite') {
+        showSystemBanner('Phó Bản: Bát Hoang Bí Cảnh - Yêu Tướng Xuất Hiện!');
+        for (let i = 0; i < 4; i++) create3DMonster('elite');
+      } else if (mode === 'boss') {
+        showSystemBanner('Cảnh Báo: Quỷ Cốc Ma Tôn Giáng Lâm!');
+        create3DMonster('boss');
+        for (let i = 0; i < 3; i++) create3DMonster('demon');
+      }
+    }
+
+    function triggerBreakthrough() {
+      castSkill(6);
+    }
+
+    function toggleCameraPreset() {
+      gameState.cameraYaw += Math.PI / 2;
+      showSystemBanner('Xoay Góc Nhìn Toàn Cảnh 3D');
+    }
+
+    // ==========================================
+    // 8. INPUT HANDLING (WASD, CLICK-TO-MOVE, 3D ORBIT & ZOOM)
+    // ==========================================
+    const raycaster = new THREE.Raycaster();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      keysPressed[k] = true;
+
+      if (k === ' ') {
+        e.preventDefault();
+        castSkill(0);
+      } else if (k >= '1' && k <= '6') {
+        castSkill(parseInt(k, 10));
+      } else if (k === 'r') {
+        useConsumable('hp');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key.toLowerCase()] = false;
+    });
+
+    // Mouse Click-to-Move / Attack & Right-Click 3D Camera Orbit
+    let isOrbiting = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    canvasEl.addEventListener('mousedown', (e) => {
+      if (e.button === 2 || e.button === 1) {
+        isOrbiting = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        return;
+      }
+
+      if (e.button === 0) {
+        const rect = canvasEl.getBoundingClientRect();
+        const ndc = new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        raycaster.setFromCamera(ndc, camera);
+
+        // Check if clicked on an enemy first
+        const enemyMeshes = enemies.map(en => en.mesh);
+        const hits = raycaster.intersectObjects(enemyMeshes, true);
+        if (hits.length > 0) {
+          let hitObj = hits[0].object;
+          while (hitObj.parent && !enemyMeshes.includes(hitObj)) {
+            hitObj = hitObj.parent;
+          }
+          const clickedEnemy = enemies.find(en => en.mesh === hitObj);
+          if (clickedEnemy) {
+            const dist = player.root.position.distanceTo(clickedEnemy.mesh.position);
+            if (dist <= 3.6) {
+              castSkill(0);
+            } else {
+              gameState.targetPos = clickedEnemy.mesh.position.clone();
+              moveMarker.position.set(gameState.targetPos.x, 0.05, gameState.targetPos.z);
+              moveMarker.visible = true;
+            }
+            return;
+          }
+        }
+
+        // Otherwise move to 3D ground coordinate
+        const hitPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(groundPlane, hitPoint)) {
+          const maxR = ARENA_RADIUS - 1.8;
+          if (hitPoint.length() > maxR) {
+            hitPoint.normalize().multiplyScalar(maxR);
+          }
+          gameState.targetPos = hitPoint.clone();
+          moveMarker.position.set(hitPoint.x, 0.05, hitPoint.z);
+          moveMarker.visible = true;
+        }
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isOrbiting) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+
+      gameState.cameraYaw -= dx * 0.0075;
+      gameState.cameraPitch = Math.max(0.35, Math.min(1.22, gameState.cameraPitch + dy * 0.0055));
+    });
+
+    window.addEventListener('mouseup', () => {
+      isOrbiting = false;
+    });
+
+    // Mouse Wheel Zoom (20% - 85%, default 35%)
+    canvasEl.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -3 : 3;
+      gameState.zoomPercent = Math.max(20, Math.min(85, gameState.zoomPercent + delta));
+      document.getElementById('hud-zoom-val').textContent = `${gameState.zoomPercent}%`;
+    }, { passive: false });
+
+    // Touch support for mobile devices
+    canvasEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const rect = canvasEl.getBoundingClientRect();
+        const ndc = new THREE.Vector2(
+          ((touch.clientX - rect.left) / rect.width) * 2 - 1,
+          -((touch.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        raycaster.setFromCamera(ndc, camera);
+        const hitPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(groundPlane, hitPoint)) {
+          const maxR = ARENA_RADIUS - 1.8;
+          if (hitPoint.length() > maxR) hitPoint.normalize().multiplyScalar(maxR);
+          gameState.targetPos = hitPoint.clone();
+          moveMarker.position.set(hitPoint.x, 0.05, hitPoint.z);
+          moveMarker.visible = true;
+        }
+      }
+    }, { passive: true });
+
+    // ==========================================
+    // 9. MINIMAP RENDERING & HUD SYNC
+    // ==========================================
+    function renderMinimap() {
+      const w = minimapCanvas.width;
+      const h = minimapCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = (w * 0.44) / ARENA_RADIUS;
+
+      minimapCtx.clearRect(0, 0, w, h);
+
+      // Arena terrain circle
+      minimapCtx.fillStyle = '#1b3838';
+      minimapCtx.beginPath();
+      minimapCtx.arc(cx, cy, ARENA_RADIUS * scale, 0, Math.PI * 2);
+      minimapCtx.fill();
+      minimapCtx.strokeStyle = '#6c8c89';
+      minimapCtx.lineWidth = 2;
+      minimapCtx.stroke();
+
+      // Magic Portals (Purple dots)
+      portals.forEach(p => {
+        minimapCtx.fillStyle = '#c084fc';
+        minimapCtx.beginPath();
+        minimapCtx.arc(cx + p.group.position.x * scale, cy + p.group.position.z * scale, 3.5, 0, Math.PI * 2);
+        minimapCtx.fill();
+      });
+
+      // Enemies (Red dots, larger for Boss)
+      enemies.forEach(e => {
+        minimapCtx.fillStyle = e.isBoss ? '#ff922b' : '#ff4d4f';
+        minimapCtx.beginPath();
+        minimapCtx.arc(
+          cx + e.mesh.position.x * scale,
+          cy + e.mesh.position.z * scale,
+          e.isBoss ? 4.5 : 2.5,
+          0,
+          Math.PI * 2
+        );
+        minimapCtx.fill();
+      });
+
+      // Player Triangle Arrow
+      const px = cx + player.root.position.x * scale;
+      const pz = cy + player.root.position.z * scale;
+      minimapCtx.save();
+      minimapCtx.translate(px, pz);
+      minimapCtx.rotate(-player.root.rotation.y + Math.PI);
+      minimapCtx.fillStyle = '#51cf66';
+      minimapCtx.beginPath();
+      minimapCtx.moveTo(0, -5);
+      minimapCtx.lineTo(4, 4);
+      minimapCtx.lineTo(-4, 4);
+      minimapCtx.closePath();
+      minimapCtx.fill();
+      minimapCtx.restore();
+    }
+
+    function updateHUD() {
+      // Regenerate MP passively
+      gameState.mp = Math.min(gameState.maxMp, gameState.mp + 0.14);
+
+      const hpPct = Math.max(0, (gameState.hp / gameState.maxHp) * 100);
+      const mpPct = Math.max(0, (gameState.mp / gameState.maxMp) * 100);
+
+      document.getElementById('hud-hp-bar').style.width = `${hpPct}%`;
+      document.getElementById('hud-hp-text').textContent = `${Math.ceil(gameState.hp)}/${gameState.maxHp}`;
+      document.getElementById('hud-mp-bar').style.width = `${mpPct}%`;
+      document.getElementById('hud-mp-text').textContent = `${Math.floor(gameState.mp)}/${gameState.maxMp}`;
+
+      // Skill Cooldown Overlays
+      skills.forEach((sk, idx) => {
+        const cdEl = document.getElementById(`cd-${idx}`);
+        if (!cdEl) return;
+        if (sk.currentCd > 0) {
+          cdEl.classList.remove('hidden');
+          cdEl.textContent = sk.currentCd.toFixed(1);
+        } else {
+          cdEl.classList.add('hidden');
+        }
+      });
+    }
+
+    // ==========================================
+    // 10. MAIN 3D ANIMATION & GAME LOOP
+    // ==========================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.getElapsedTime();
+
+      // Update skill cooldowns & buffs
+      skills.forEach(sk => {
+        if (sk.currentCd > 0) sk.currentCd = Math.max(0, sk.currentCd - dt);
+      });
+      if (gameState.auraTimer > 0) {
+        gameState.auraTimer -= dt;
+        if (gameState.auraTimer <= 0) {
+          document.getElementById('buff-aura-icon').classList.add('hidden');
+        }
+      }
+      if (gameState.rageTimer > 0) gameState.rageTimer -= dt;
+
+      // Camera Q/E keyboard rotation
+      if (keysPressed['q']) gameState.cameraYaw += dt * 1.8;
+      if (keysPressed['e']) gameState.cameraYaw -= dt * 1.8;
+
+      // Player Movement (WASD / Arrows relative to Isometric Camera Yaw)
+      const moveInput = new THREE.Vector3();
+      if (keysPressed['w'] || keysPressed['arrowup']) moveInput.z -= 1;
+      if (keysPressed['s'] || keysPressed['arrowdown']) moveInput.z += 1;
+      if (keysPressed['a'] || keysPressed['arrowleft']) moveInput.x -= 1;
+      if (keysPressed['d'] || keysPressed['arrowright']) moveInput.x += 1;
+
+      let isMoving = false;
+      const moveSpeed = gameState.auraTimer > 0 ? 8.8 : 7.0;
+
+      if (moveInput.lengthSq() > 0) {
+        gameState.targetPos = null;
+        moveMarker.visible = false;
+        moveInput.normalize();
+
+        // Rotate input vector by camera yaw
+        const camForward = new THREE.Vector3(-Math.sin(gameState.cameraYaw), 0, -Math.cos(gameState.cameraYaw));
+        const camRight = new THREE.Vector3(Math.cos(gameState.cameraYaw), 0, -Math.sin(gameState.cameraYaw));
+        const worldDir = new THREE.Vector3()
+          .addScaledVector(camForward, -moveInput.z)
+          .addScaledVector(camRight, moveInput.x)
+          .normalize();
+
+        player.root.position.addScaledVector(worldDir, moveSpeed * dt);
+        player.root.rotation.y = Math.atan2(worldDir.x, worldDir.z);
+        isMoving = true;
+      } else if (gameState.targetPos) {
+        const toTarget = new THREE.Vector3().subVectors(gameState.targetPos, player.root.position);
+        toTarget.y = 0;
+        const dist = toTarget.length();
+        if (dist > 0.25) {
+          toTarget.normalize();
+          player.root.position.addScaledVector(toTarget, moveSpeed * dt);
+          player.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
+          isMoving = true;
+        } else {
+          gameState.targetPos = null;
+          moveMarker.visible = false;
+        }
+      }
+
+      // Clamp player inside floating mountain arena
+      const maxArenaR = ARENA_RADIUS - 1.6;
+      if (player.root.position.length() > maxArenaR) {
+        player.root.position.normalize().multiplyScalar(maxArenaR);
+      }
+
+      // Auto-attack nearest enemy in melee range if idle
+      gameState.autoAttackCooldown -= dt;
+      if (!isMoving && gameState.attackAnimTimer <= 0 && gameState.spinAnimTimer <= 0 && gameState.autoAttackCooldown <= 0) {
+        const nearEnemy = findNearestEnemy(3.2);
+        if (nearEnemy) {
+          castSkill(0);
+          gameState.autoAttackCooldown = 0.85;
+        }
+      }
+
+      // --- ARTICULATED CHARACTER ANIMATIONS ---
+      player.midRing.rotation.z = elapsed * 1.4;
+      player.innerRing.rotation.z = -elapsed * 2.1;
+      player.ponytailGroup.rotation.x = Math.sin(elapsed * 5) * 0.08;
+
+      if (gameState.spinAnimTimer > 0) {
+        gameState.spinAnimTimer -= dt;
+        player.bodyPivot.rotation.y += dt * 24;
+        player.rightArm.rotation.x = -Math.PI / 2;
+        if (gameState.spinAnimTimer <= 0) {
+          player.bodyPivot.rotation.y = 0;
+          player.holsterSword();
+        }
+      } else if (gameState.attackAnimTimer > 0) {
+        gameState.attackAnimTimer -= dt;
+        const swing = Math.sin((1 - gameState.attackAnimTimer / 0.4) * Math.PI);
+        player.rightArm.rotation.x = -Math.PI * 0.75 + swing * 1.6;
+        player.torsoGroup.rotation.y = (0.5 - swing) * 0.9;
+        if (gameState.attackAnimTimer <= 0) {
+          player.rightArm.rotation.x = 0;
+          player.torsoGroup.rotation.y = 0;
+          player.holsterSword();
+        }
+      } else if (isMoving) {
+        const runCycle = elapsed * 13;
+        player.leftLeg.rotation.x = Math.sin(runCycle) * 0.7;
+        player.rightLeg.rotation.x = -Math.sin(runCycle) * 0.7;
+        player.leftArm.rotation.x = -Math.sin(runCycle) * 0.55;
+        player.rightArm.rotation.x = Math.sin(runCycle) * 0.55;
+        player.bodyPivot.position.y = Math.abs(Math.cos(runCycle)) * 0.12;
+      } else {
+        // Breathing idle
+        player.leftLeg.rotation.x = 0;
+        player.rightLeg.rotation.x = 0;
+        player.leftArm.rotation.x = 0;
+        player.rightArm.rotation.x = 0;
+        player.bodyPivot.position.y = Math.sin(elapsed * 3) * 0.035;
+      }
+
+      // --- UPDATE 3D MONSTERS AI & PHYSICS ---
+      if (enemies.length < 6 && Math.random() < 0.025) {
+        create3DMonster(Math.random() > 0.4 ? 'demon' : 'ghoul');
+      }
+
+      for (const e of enemies) {
+        // Hit flash decay
+        if (e.hitFlash > 0) {
+          e.hitFlash -= dt;
+          if (e.hitFlash <= 0) e.bodyMat.emissive.setHex(0x000000);
+        }
+
+        // Knockback damping
+        if (e.knockbackVel.lengthSq() > 0.01) {
+          e.mesh.position.addScaledVector(e.knockbackVel, dt);
+          e.knockbackVel.multiplyScalar(Math.pow(0.08, dt));
+        }
+
+        // Chase & Attack Player
+        const toPlayer = new THREE.Vector3().subVectors(player.root.position, e.mesh.position);
+        toPlayer.y = 0;
+        const dist = toPlayer.length();
+
+        if (dist > (e.isBoss ? 2.5 : 1.75)) {
+          toPlayer.normalize();
+          e.mesh.position.addScaledVector(toPlayer, e.speed * dt);
+          e.mesh.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+          e.mesh.position.y = Math.abs(Math.sin(elapsed * 8 + e.animPhase)) * 0.12;
+        } else {
+          e.mesh.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+          e.attackCd -= dt;
+          if (e.attackCd <= 0) {
+            e.attackCd = 1.6;
+            if (Math.random() < gameState.dodgeChance) {
+              spawnFloatingText(player.root.position, 'Né tránh', 'dmg-dodge');
+            } else {
+              gameState.hp = Math.max(15, gameState.hp - e.damage);
+              spawnFloatingText(player.root.position, `-${e.damage}`, 'dmg-normal');
+            }
+          }
+        }
+
+        // Keep enemies inside arena
+        if (e.mesh.position.length() > maxArenaR) {
+          e.mesh.position.normalize().multiplyScalar(maxArenaR);
+        }
+
+        // Billboard 3D HP bar toward camera
+        e.hpBarGroup.quaternion.copy(camera.quaternion);
+      }
+
+      // --- UPDATE 3D PROJECTILES & VFX ---
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.age += dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+
+        for (const e of enemies) {
+          if (!p.hitSet.has(e) && p.mesh.position.distanceTo(e.mesh.position) < (e.isBoss ? 2.0 : 1.35)) {
+            p.hitSet.add(e);
+            damageEnemy(e, p.damage, 5, true);
+          }
+        }
+
+        if (p.age >= p.maxAge) {
+          scene.remove(p.mesh);
+          projectiles.splice(i, 1);
+        }
+      }
+
+      for (let i = vfxList.length - 1; i >= 0; i--) {
+        const v = vfxList[i];
+        v.update(dt);
+        if (v.age >= v.duration) {
+          scene.remove(v.mesh);
+          vfxList.splice(i, 1);
+        }
+      }
+
+      // --- ANIMATE ENVIRONMENT (Portals, Waterfalls, Fireflies) ---
+      portals.forEach(p => {
+        p.ring1.rotation.z += dt * 0.9;
+        p.ring2.rotation.z -= dt * 1.4;
+      });
+      floatingParticles.forEach(sp => {
+        sp.position.y = sp.userData.baseY + Math.sin(elapsed * sp.userData.speed + sp.userData.phase) * 0.8;
+      });
+      if (moveMarker.visible) {
+        moveMarker.scale.setScalar(0.85 + Math.sin(elapsed * 8) * 0.15);
+      }
+
+      // --- TRUE 3D ISOMETRIC CAMERA POSITIONING (Zoom 35% = Wide Panoramic View) ---
+      // At 35% zoom, camera distance is ~42 units so the entire floating peak & battle are visible
+      const camDistance = 16 + ((100 - gameState.zoomPercent) / 65) * 26;
+      const horizDist = camDistance * Math.cos(gameState.cameraPitch);
+      const vertDist = camDistance * Math.sin(gameState.cameraPitch);
+
+      const targetCamPos = new THREE.Vector3(
+        player.root.position.x + Math.sin(gameState.cameraYaw) * horizDist,
+        player.root.position.y + vertDist,
+        player.root.position.z + Math.cos(gameState.cameraYaw) * horizDist
+      );
+      camera.position.lerp(targetCamPos, 0.14);
+      camera.lookAt(
+        player.root.position.x,
+        player.root.position.y + 0.9,
+        player.root.position.z
+      );
+
+      renderMinimap();
+      updateHUD();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = function () {
+      showSystemBanner('Chào Mừng Đạo Hữu Đến Với Quỷ Cốc Bát Hoang 3D!');
+      animate();
+    };
+  </script>
+</body>
+</html>

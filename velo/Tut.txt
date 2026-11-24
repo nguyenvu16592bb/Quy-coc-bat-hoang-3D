@@ -1,0 +1,12 @@
+Phát hiện then chốt (đọc placeKinePart trong rig-auto):
+Khi rig-auto import .kine, part được đặt tại boneWorld + attachment(x + w/2, y) — lấy từ animforge.project.json — KHÔNG phải pixelforge.json part.x/y (layout editor thô — chính nó làm quần cách giày 15px)!
+
+animforge.project.json ĐÃ LÀ format engine sẵn sàng (vì .kine của bạn được EXPORT từ rig-auto):
+
+bones: world rest, skel units, rotation DEGREES, ×0.45 baked ✓
+slots: attachment local (x/y/rotation/scale 0.45) ✓
+keyframes: world absolute, độ, đủ 12 clips ✓
+Converter v4 — đọc thẳng animforge.project.json (đúng "mục export"):
+bones/slots/keyframes giữ nguyên từ file
+tự dựng atlas sheet, strip folder prefix khỏi path
+node scale 0.42 → 1.0 (0.45 đã bake sẵn trong skel)

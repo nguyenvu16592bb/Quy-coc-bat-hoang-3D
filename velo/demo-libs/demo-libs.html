@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Velo + PixiJS + Phaser — kết hợp trên cùng trang web</title>
+<style>
+  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #101828; color: #e6edf7; }
+  header { padding: 14px 20px; background: #16233b; border-bottom: 1px solid #2b3d5c; }
+  header h1 { margin: 0; font-size: 18px; color: #ffd97a; }
+  header p { margin: 4px 0 0; font-size: 13px; color: #9fb3d1; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px; }
+  .card { background: #16233b; border: 1px solid #2b3d5c; border-radius: 10px; overflow: hidden; }
+  .card h2 { margin: 0; padding: 8px 12px; font-size: 14px; background: #1e2f4d; color: #bfe3ff; }
+  .card .body { padding: 8px; }
+  iframe.velo { width: 540px; height: 700px; border: 0; background: #000; }
+  canvas.pixi { display: block; width: 480px; height: 300px; background: #0b1424; }
+  #phaser-box { width: 480px; height: 300px; }
+  .note { padding: 10px 16px; font-size: 12.5px; color: #c9d8ee; background: #12203a; border-top: 1px solid #2b3d5c; line-height: 1.7; }
+  code { background: #0b1424; padding: 1px 6px; border-radius: 4px; color: #8fe3a0; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Elemental Monsters: Merge — Velo Engine + PixiJS + Phaser trên 1 trang</h1>
+  <p>3 engine chạy đồng thời: Velo (game WebGL) + PixiJS (overlay/HUD) + Phaser (menu/loading). Tất cả lib local trong <code>vendor/</code>.</p>
+</header>
+
+<div class="row">
+  <div class="card">
+    <h2>1. Velo Engine — game chính (iframe)</h2>
+    <div class="body">
+      <iframe class="velo" src="../build/webgl/index.html" title="Velo game"></iframe>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. PixiJS — overlay HUD (canvas trong suốt)</h2>
+    <div class="body">
+      <canvas id="pixi-canvas" class="pixi"></canvas>
+      <div class="note">
+        PixiJS vẽ hiệu ứng chồng lên <i>không phụ thuộc</i> vào Velo.
+        Cách ghép thật vào game: đặt canvas Pixi <b>phủ trên canvas Velo</b>
+        (<code>position:absolute; pointer-events:none</code>) và đồng bộ qua một
+        biến global — ví dụ <code>window.gameBridge = { coins: 0 }</code> mà cả 2 engine cùng đọc/ghi.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Phaser — màn menu / loading</h2>
+    <div class="body">
+      <div id="phaser-box"></div>
+      <div class="note">
+        Phaser chạy scene riêng (menu, hướng dẫn, chọn ngôn ngữ) trên canvas của nó.
+        Khi player bấm "VÀO GAME" bên dưới, trang ẩn canvas Phaser và hiện iframe Velo.
+        Đây là mô hình phổ biến: <b>Phaser làm khung app, Velo chạy màn gameplay</b>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="padding: 0 14px 14px;">
+  <button id="go-game" style="padding:12px 28px;font-size:15px;background:#ffd97a;color:#1a1404;border:0;border-radius:8px;cursor:pointer;font-weight:600;">▶ VÀO GAME (hiện Velo, ẩn Phaser)</button>
+  <button id="go-menu" style="padding:12px 28px;font-size:15px;background:#2b3d5c;color:#e6edf7;border:0;border-radius:8px;cursor:pointer;margin-left:10px;">◀ VỀ MENU (hiện Phaser, ẩn Velo)</button>
+</div>
+
+<script src="vendor/pixi.min.js"></script>
+<script src="vendor/phaser.min.js"></script>
+<script>
+// ============ 2. PixiJS overlay ============
+(function () {
+  const app = new PIXI.Application();
+  app.init({ width: 480, height: 300, backgroundAlpha: 0, antialias: true })
+    .then(() => {
+      document.getElementById('pixi-canvas').replaceWith(app.canvas);
+      app.canvas.style.display = 'block';
+      app.canvas.style.width = '480px';
+      app.canvas.style.height = '300px';
+      // particles demo — vòng tròn bay + chữ HUD
+      const label = new PIXI.Text('PIXI HUD — coins: 200', {
+        fontFamily: 'Arial', fontSize: 20, fill: 0xffd97a, fontWeight: 'bold'
+      });
+      label.position.set(12, 10);
+      app.stage.addChild(label);
+
+      const sprites = [];
+      for (let i = 0; i < 60; i++) {
+        const g = new PIXI.Graphics();
+        g.circle(0, 0, 4 + Math.random() * 5);
+        g.fill(0x66ccff);
+        g.x = Math.random() * 480;
+        g.y = Math.random() * 300;
+        g.vx = (Math.random() - 0.5) * 1.6;
+        g.vy = (Math.random() - 0.5) * 1.6;
+        app.stage.addChild(g);
+        sprites.push(g);
+      }
+      app.ticker.add(() => {
+        for (const s of sprites) {
+          s.x += s.vx; s.y += s.vy;
+          if (s.x < 0 || s.x > 480) s.vx *= -1;
+          if (s.y < 0 || s.y > 300) s.vy *= -1;
+        }
+      });
+      console.log('[demo] PixiJS running');
+    });
+})();
+
+// ============ 3. Phaser menu ============
+(function () {
+  const cfg = {
+    type: Phaser.AUTO,
+    parent: 'phaser-box',
+    width: 480, height: 300,
+    backgroundColor: '#0b1424',
+    scene: {
+      create() {
+        this.add.text(240, 90, 'ELEMENTAL MONSTERS', { fontSize: '26px', fill: '#ffd97a', fontStyle: 'bold' }).setOrigin(0.5);
+        this.add.text(240, 130, 'Màn menu chạy bằng PHASER', { fontSize: '15px', fill: '#9fb3d1' }).setOrigin(0.5);
+        this.add.text(240, 160, 'Vẽ animation / hiệu ứng menu không đụng vào game Velo', { fontSize: '12px', fill: '#6f86a8' }).setOrigin(0.5);
+        // 1 sprite bay lên xuống
+        const box = this.add.rectangle(240, 220, 60, 24, 0x66ccff);
+        this.tweens.add({ targets: box, y: 190, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        console.log('[demo] Phaser running');
+      }
+    }
+  };
+  new Phaser.Game(cfg);
+})();
+
+// ============ chuyển đổi menu <-> game ============
+(function () {
+  const iframe = document.querySelector('iframe.velo');
+  const phaserBox = document.getElementById('phaser-box');
+  const go = document.getElementById('go-game');
+  const back = document.getElementById('go-menu');
+  iframe.style.display = 'none';
+  go.addEventListener('click', () => {
+    iframe.style.display = 'block';
+    phaserBox.style.display = 'none';
+    // bridge ví dụ: nói với game Velo (nếu mở sẵn API) — minh hoạ đồng bộ state
+    console.log('[bridge] into game');
+  });
+  back.addEventListener('click', () => {
+    iframe.style.display = 'none';
+    phaserBox.style.display = 'block';
+    console.log('[bridge] back to menu');
+  });
+})();
+</script>
+</body>
+</html>

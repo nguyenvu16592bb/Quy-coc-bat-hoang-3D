@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Boss Rig Compare</title>
+<style>body{background:#222;color:#fff;font:13px monospace;margin:8px}
+.panel{display:inline-block;margin:8px;vertical-align:top}
+canvas{background:#333;border:1px solid #666}</style></head>
+<body>
+<h3>BOSS RIG — skel v3 render (trái) vs .kine raw part layout (phải)</h3>
+<div class="panel"><canvas id="c1" width="800" height="560"></canvas><br>skel v3 (real hierarchy + att offset)</div>
+<div class="panel"><canvas id="c2" width="800" height="560"></canvas><br>.kine parts tại part.x/y (rest)</div>
+<script>
+(async () => {
+  const B = 'http://localhost:8090/assets/kine/';
+  const sk = await (await fetch(B + 'pixelforge-nhan-vat-1-auto-rig_v3.skel.json')).json();
+  const at = await (await fetch(B + 'pixelforge-nhan-vat-1-auto-rig_v3.atlas.json')).json();
+  const img = new Image();
+  img.src = B + 'pixelforge-nhan-vat-1-auto-rig_v3.png';
+  await new Promise(r => { img.onload = r; });
+  const cw = sk.canvasSize.width, ch = sk.canvasSize.height;
+  const cx = cw / 2, cy = ch / 2;
+  const SC = 1.1, OX = 400, OY = 300; // draw scaled around canvas centre
+  const draw = (cv, parts) => {
+    const g = cv.getContext('2d');
+    g.fillStyle = '#333'; g.fillRect(0, 0, cv.width, cv.height);
+    g.strokeStyle = '#555'; g.strokeRect(OX - 480 * SC, OY - 300 * SC, 960 * SC, 600 * SC);
+    g.save();
+    g.translate(OX, OY); g.scale(SC, SC); g.translate(-cx, -cy);
+    for (const p of parts) {
+      const region = at.regions.find(r => r.path === p.path);
+      if (!region) continue;
+      g.save();
+      g.translate(p.x, p.y);
+      if (p.rot) g.rotate(p.rot);
+      g.drawImage(img, region.x, region.y, region.width, region.height, -p.w / 2, -p.h / 2, p.w, p.h);
+      g.restore();
+      g.strokeStyle = '#0ff'; g.strokeRect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h);
+      g.fillStyle = '#ff0'; g.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    g.restore();
+  };
+  // ---- panel 1: skel v3 render (runtime math, rest pose, time 0) ----
+  const bonePose = (name) => {
+    const b = sk.bones.find(x => x.name === name);
+    const pose = (nm) => {
+      const bb = sk.bones.find(x => x.name === nm);
+      const rot = bb.rotation * Math.PI / 180;
+      const par = bb.parent ? pose(bb.parent) : null;
+      const wx = par ? par.x + bb.x * Math.cos(par.rot) - bb.y * Math.sin(par.rot) : bb.x;
+      const wy = par ? par.y + bb.x * Math.sin(par.rot) + bb.y * Math.cos(par.rot) : bb.y;
+      return { x: wx, y: wy, rot: par ? par.rot + rot : rot };
+    };
+    return pose(name);
+  };
+  const parts1 = [];
+  for (const slot of sk.slots) {
+    const att = slot.attachments[0];
+    const w = att.size.width, h = att.size.height;
+    const bp = bonePose(slot.bone);
+    const wx = bp.x * cw / 100, wy = bp.y * ch / 180; // origin
+    const arot = att.rotation * Math.PI / 180;
+    // mesh center = origin + rotate(att.x + w/2, att.y, boneRot)
+    const tRot = bp.rot + arot; // mesh corner rotation
+    const offX = att.x + w / 2, offY = att.y;
+    const cos = Math.cos(bp.rot), sin = Math.sin(bp.rot);
+    const cx0 = wx + offX * cos - offY * sin;
+    const cy0 = wy + offX * sin + offY * cos;
+    parts1.push({ path: att.path, x: cx0, y: cy0, rot: tRot, w, h });
+  }
+  draw(document.getElementById('c1'), parts1);
+  // ---- panel 2: raw .kine layout ----
+  // fetch parts x/y from the .kine — use known part coords from the file dump
+  const known = { 'leg_1': [429.75, 469.3], 'leg_2': [504.25, 469.5], 'arm_1': [407.85, 249.81], 'leg_2-2': [503.25, 368.4], 'leg_1-2': [442.75, 370.15], 'body2': [477.71, 304.04], 'arm_2': [552.94, 285.43], 'body2-2': [541.81, 363.87], 'head': [478.84, 218.2] };
+  const sizes = { 'leg_1': [81, 46], 'leg_2': [68, 50], 'arm_1': [70, 172], 'leg_2-2': [74, 128], 'leg_1-2': [71, 123], 'body2': [177, 220], 'arm_2': [55, 85], 'body2-2': [67, 119], 'head': [281, 248] };
+  const parts2 = Object.keys(known).map(n => ({ path: n, x: known[n][0], y: known[n][1], rot: 0, w: sizes[n][0], h: sizes[n][1] }));
+  draw(document.getElementById('c2'), parts2);
+  document.body.insertAdjacentHTML('beforeend', '<div>OK — rendered ' + parts1.length + ' parts (skel) / ' + parts2.length + ' parts (raw)</div>');
+})();
+</script>
+</body></html>
