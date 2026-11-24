@@ -62,8 +62,8 @@ mut:
 	// (sects.v, economy.v, equipment.v, pets.v, guild.v, quests.v, pvp.v, save.v)
 	sect_id             int = -1 // -1 = chưa nhập phái
 	def                 int
-	gold                int = 500
-	silver              int = 2000
+	gold                int = 455
+	silver              int = 40932
 	inventory           []int
 	equip_slots         [6]int = [-1, -1, -1, -1, -1, -1]!
 	equip_level         [6]int
@@ -85,6 +85,40 @@ mut:
 	pvp_wins            int
 	pvp_losses          int
 	world_boss_dmg      int
+	// ---- trận hình 5 người / auto-battle / raid boss (battle_map.v) ----
+	// hero_ids stays [3]int (slots 0-2); slots 3-4 read hero_ids_extra.
+	hero_ids_extra [2]int = [5, 7]! // 5 Kim Cương (tank) + 7 Bạch Hổ (healer)
+	party_size     int = 3 // field members now (3 until the 5-formation opens)
+	auto_battle    bool
+	battle_speed   f32 = 1 // battle speed multiplier (1 or 2, mirrors HTML battleSpeed)
+	battle_paused  bool // battle paused (mirrors HTML battlePaused)
+	battle_skip    bool // skip requested: BattleDirector clears normal enemies once
+	enhance_attempts int // enhance rolls tried (seed term attempts*29, mirrors HTML)
+	pvp_daily_date string // last day the PvP daily reward was claimed (dd/mm/yyyy)
+	battle_combo   int
+	battle_combo_t f32
+	battle_rage    int // nộ khí 0..100 (battle_rage_max in battle_map.v)
+	battle_threat  [5]int // aggro per field slot
+	battle_log     []string // damage log, newest last (battle_log_max lines)
+	battle_log_count int
+	battle_phase   int = 1 // raid boss phase 1..3
+	battle_boss_hp int
+	battle_boss_max int
+	battle_top_threat int // field slot holding aggro
+	raid_active    bool
+	// ---- thị trấn Song Ma an toàn (town.v) ----
+	in_town          bool
+	town_npc         int = -1 // -1 none, 0 Trưởng Môn, 1 Chủ Sạp, 2 Thợ Rèn
+	town_sect_sel    int
+	town_shop_sel    int
+	show_battle      bool
+	show_town        bool
+	show_enhance     bool
+	show_pvp         bool
+	enhance_slot_sel int
+	enhance_sel_lv   int
+	enhance_sel_cost int
+	enhance_sel_rate int
 }
 
 const g = &GState{}
@@ -156,6 +190,40 @@ fn publish() {
 	st.set_int('pet_id', s.pet_id)
 	st.set_int('pvp_points', s.pvp_points)
 	st.set_int('pvp_rank', s.pvp_rank)
+	st.set_int('pvp_wins', s.pvp_wins)
+	st.set_int('pvp_losses', s.pvp_losses)
+	st.set_int('world_boss_dmg', s.world_boss_dmg)
+	// battle formation / auto-battle / raid boss (battle_map.v)
+	st.set_int('party_size', s.party_size)
+	st.set_int('auto_battle', if s.auto_battle { 1 } else { 0 })
+	st.set_int('battle_speed', int(s.battle_speed))
+	st.set_int('battle_paused', if s.battle_paused { 1 } else { 0 })
+	st.set_int('battle_combo', s.battle_combo)
+	st.set_int('battle_rage', s.battle_rage)
+	st.set_int('battle_phase', s.battle_phase)
+	st.set_int('battle_boss_hp', s.battle_boss_hp)
+	st.set_int('battle_boss_max', s.battle_boss_max)
+	st.set_int('battle_log_count', s.battle_log_count)
+	st.set_int('battle_top_threat', s.battle_top_threat)
+	st.set_int('raid_active', if s.raid_active { 1 } else { 0 })
+	// safe town + panels (town.v)
+	st.set_int('in_town', if s.in_town { 1 } else { 0 })
+	st.set_int('town_npc', s.town_npc)
+	st.set_int('town_sect_sel', s.town_sect_sel)
+	st.set_int('town_shop_sel', s.town_shop_sel)
+	st.set_int('show_battle', if s.show_battle { 1 } else { 0 })
+	st.set_int('show_town', if s.show_town { 1 } else { 0 })
+	st.set_int('show_enhance', if s.show_enhance { 1 } else { 0 })
+	st.set_int('show_pvp', if s.show_pvp { 1 } else { 0 })
+	// forge selection: the selected slot's level, next cost and success rate
+	mut sel := s.enhance_slot_sel
+	if sel < 0 || sel >= equip_slot_count {
+		sel = 0
+	}
+	st.set_int('enhance_slot_sel', sel)
+	st.set_int('enhance_sel_lv', s.equip_level[sel])
+	st.set_int('enhance_sel_cost', enhance_cost(sel))
+	st.set_int('enhance_sel_rate', enhance_rate(sel))
 }
 
 // show_banner: the center-top system message (fades via HUDSync).

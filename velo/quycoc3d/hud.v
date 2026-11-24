@@ -26,6 +26,12 @@ pub mut:
 	buff_aura    &core.Node = unsafe { nil } @[hide]
 	buff_rage    &core.Node = unsafe { nil } @[hide]
 	map_panel    &core.Node = unsafe { nil } @[hide]
+	// battle v2 panels (added in main.scene; BattlePanelUI/TownPanelUI also
+	// find them themselves, HUDSync keeps a reference for the HUD layer).
+	battle_panel &core.Node = unsafe { nil } @[hide]
+	town_panel   &core.Node = unsafe { nil } @[hide]
+	enhance_panel &core.Node = unsafe { nil } @[hide]
+	pvp_panel    &core.Node = unsafe { nil } @[hide]
 	dots         []&core.Node @[hide]
 	player_dot   &core.Node = unsafe { nil } @[hide]
 	cd_labels    []&core.Node @[hide]
@@ -54,6 +60,10 @@ pub fn (mut h HUDSync) start() {
 	if n := sc.find('HUD/Minimap/Title') { h.map_title = n }
 	if n := sc.find('HUD/QuestPanel/QuestText') { h.quest_label = n }
 	if n := sc.find('HUD/Banner') { h.banner_label = n }
+	if n := sc.find('HUD/BattlePanel') { h.battle_panel = n }
+	if n := sc.find('HUD/TownPanel') { h.town_panel = n }
+	if n := sc.find('HUD/EnhancePanel') { h.enhance_panel = n }
+	if n := sc.find('HUD/PvpPanel') { h.pvp_panel = n }
 	for i in 0 .. 7 {
 		if n := sc.find('HUD/Slots/Slot${i}') { h.slots << n }
 		if n := sc.find('HUD/Slots/Slot${i}/Cd') { h.cd_labels << n }

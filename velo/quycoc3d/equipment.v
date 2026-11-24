@@ -169,6 +169,17 @@ pub const equip_items = [
 		rarity:     'Truyền Thuyết'
 		price_gold: 2200
 	},
+	ItemDef{
+		id:         112
+		name:       'Dây Chuyền Bát Hoang'
+		slot:       5
+		atk:        18
+		hp:         120
+		def:        8
+		crit_add:   0.06
+		rarity:     'Truyền Thuyết'
+		price_gold: 2600
+	},
 ]
 
 pub struct GemDef {
@@ -307,6 +318,11 @@ pub const drop_table = [
 		item_id:    105
 		rate_pct:   22
 	},
+	DropEntry{
+		enemy_kind: 'boss bang'
+		item_id:    112
+		rate_pct:   15
+	},
 ]
 
 // item_def: the equipment entry of an id (safe for any id, falls back to item 100).
@@ -385,11 +401,13 @@ fn enhance_rate(slot int) int {
 	return r
 }
 
-// enhance_roll: deterministic roll 0..99 from the game state, so the same
-// state always gives the same enhance result.
+// enhance_roll: deterministic roll 0..99 from the game state. The attempts
+// term (+29 per try, mirrors HTML enhanceAttempts * 29) reseeds the roll on
+// every try, so a failed attempt does not repeat the exact same result
+// forever while the rest of the state stays unchanged.
 fn enhance_roll(slot int) int {
 	s := gs()
-	return (s.kills * 37 + slot * 13 + s.equip_level[slot] * 7 + s.level * 11) % 100
+	return (s.kills * 37 + slot * 13 + s.equip_level[slot] * 7 + s.level * 11 + s.enhance_attempts * 29) % 100
 }
 
 // enhance_slot: try to raise a slot's enhance level by 1. Costs gold; on
@@ -410,6 +428,8 @@ fn enhance_slot(slot int) bool {
 	if !spend_gold(cost) {
 		return false
 	}
+	// every paid try reseeds the roll (see enhance_roll)
+	s.enhance_attempts += 1
 	if enhance_roll(slot) < enhance_rate(slot) {
 		s.equip_level[slot] += 1
 		apply_equip_stats()

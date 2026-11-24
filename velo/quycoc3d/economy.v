@@ -122,6 +122,26 @@ pub const shop_items = [
 		atk_add:      0
 		desc:         'Mở ra nhận 10 linh thạch.'
 	},
+	ShopItem{
+		id:           10
+		name:         'Hồi Sinh Đan'
+		price_gold:   250
+		price_silver: 0
+		kind:         'pill'
+		hp_add:       200
+		atk_add:      0
+		desc:         'Uống vào hồi 200 HP ngay lập tức.'
+	},
+	ShopItem{
+		id:           11
+		name:         'Linh Thạch Thượng Phẩm'
+		price_gold:   0
+		price_silver: 1200
+		kind:         'material'
+		hp_add:       0
+		atk_add:      0
+		desc:         'Mở ra nhận 30 linh thạch.'
+	},
 ]
 
 pub const market_fee_pct = 5

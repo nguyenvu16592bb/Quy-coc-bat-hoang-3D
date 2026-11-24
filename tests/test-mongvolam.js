@@ -164,15 +164,15 @@ if (html === null) {
   }
 
   // A3. Bảng pet / thần thú trong HTML.
-  // HTML hiện có 3 pet (Thần Điêu / Hồ Ly / Kim Thiềm) — ít hơn bản V (6 pet);
-  // sự lệch này được kiểm tra riêng ở mục E (cross-mirror).
+  // Chuẩn vòng 2 đã chốt: 6 pet (khớp bản V) — HTML vòng 1 chỉ có 3 pet
+  // (Thần Điêu / Hồ Ly / Kim Thiềm); nhóm 1 đang bổ sung lên 6.
   const petCountHtml = countEntriesInArrayBlock(html, /(?:const|let|var)\s+(?:pets|PETS|thanThu|petsData)\s*=/i)
     ?? countEntriesInArrayBlock(html, /pets\s*[:=]\s*\[/i);
   if (petCountHtml === null) {
     report('MISSING', 'HTML: bảng pet/thần thú', 'không tìm thấy mảng pets');
   } else {
     cross.htmlPets = petCountHtml;
-    check(petCountHtml === 3, 'HTML: đủ 3 pet (Thần Điêu/Hồ Ly/Kim Thiềm)', `đếm được ${petCountHtml}`);
+    check(petCountHtml === 6, 'HTML: đủ 6 pet (chuẩn vòng 2, khớp V)', `đếm được ${petCountHtml}`);
   }
 
   // A4. Slot trang bị trong HTML (6 slot: vũ khí, áo, mũ, giày, nhẫn, dây chuyền...).
@@ -213,16 +213,16 @@ if (html === null) {
   if (actCount === null) report('MISSING', 'HTML: 7 hoạt động hằng ngày', 'không tìm thấy ACTIVITIES');
   else { cross.htmlActivities = actCount; check(actCount === 7, 'HTML: đủ 7 hoạt động hằng ngày', `đếm được ${actCount}`); }
   const evCount = countEntriesInArrayBlock(html, /const\s+EVENTS\s*=/);
-  if (evCount === null) report('MISSING', 'HTML: 3 sự kiện theo giờ', 'không tìm thấy EVENTS');
-  else { cross.htmlEvents = evCount; check(evCount === 3, 'HTML: đủ 3 sự kiện theo giờ', `đếm được ${evCount}`); }
+  if (evCount === null) report('MISSING', 'HTML: 5 sự kiện theo giờ', 'không tìm thấy EVENTS');
+  else { cross.htmlEvents = evCount; check(evCount === 5, 'HTML: đủ 5 sự kiện theo giờ (chuẩn vòng 2, khớp V)', `đếm được ${evCount}`); }
   const shopCount = countStringsInArrayBlock(html, /const\s+SHOP_STOCK\s*=/);
   if (shopCount === null) report('MISSING', 'HTML: kho chợ SHOP_STOCK', 'không tìm thấy SHOP_STOCK');
   else check(shopCount === 12, 'HTML: chợ có 12 mặt hàng (SHOP_STOCK)', `đếm được ${shopCount}`);
   const itemCount = (html.match(/^\s{6}[a-z_]+:\s*\{ name: '/gm) || []).length;
-  check(itemCount === 19, 'HTML: bảng ITEMS có 19 vật phẩm', `đếm được ${itemCount}`);
+  check(itemCount === 25, 'HTML: bảng ITEMS có 25 vật phẩm (19 cũ + 6 ngọc mới vòng 2)', `đếm được ${itemCount}`);
   const guildCount = countEntriesInArrayBlock(html, /const\s+GUILD_PRESETS\s*=/);
-  if (guildCount === null) report('MISSING', 'HTML: 3 bang hội mẫu', 'không tìm thấy GUILD_PRESETS');
-  else { cross.htmlGuilds = guildCount; check(guildCount === 3, 'HTML: đủ 3 bang hội mẫu', `đếm được ${guildCount}`); }
+  if (guildCount === null) report('MISSING', 'HTML: 4 bang hội mẫu', 'không tìm thấy GUILD_PRESETS');
+  else { cross.htmlGuilds = guildCount; check(guildCount === 4, 'HTML: đủ 4 bang hội mẫu (chuẩn vòng 2, khớp V)', `đếm được ${guildCount}`); }
   check(/function toggleTownMode/.test(html) && /Khu An Toàn/.test(html),
     'HTML: thị trấn an toàn Song Ma Quyền Phái (toggleTownMode)', 'có toggleTownMode + banner Khu An Toàn');
   check(/setInterval\(function \(\) \{ saveGame\(false\); \}, 15000\)/.test(html),

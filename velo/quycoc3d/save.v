@@ -40,6 +40,7 @@ pub mut:
 	pvp_rank            int
 	pvp_wins            int
 	pvp_losses          int
+	pvp_daily_date      string // ngày nhận thưởng ngày PvP (dd/mm/yyyy)
 	quest_current       int
 	inventory           []int
 	equip_slots         []int
@@ -77,6 +78,7 @@ fn collect_save() SaveData {
 		pvp_rank:            s.pvp_rank
 		pvp_wins:            s.pvp_wins
 		pvp_losses:          s.pvp_losses
+		pvp_daily_date:      s.pvp_daily_date
 		quest_current:       s.quest_current
 	}
 	for id in s.inventory {
@@ -168,6 +170,7 @@ fn apply_save(d SaveData) {
 	if d.pvp_losses >= 0 {
 		s.pvp_losses = d.pvp_losses
 	}
+	s.pvp_daily_date = d.pvp_daily_date
 	if d.quest_current >= 0 && d.quest_current < main_quests.len {
 		s.quest_current = d.quest_current
 	}

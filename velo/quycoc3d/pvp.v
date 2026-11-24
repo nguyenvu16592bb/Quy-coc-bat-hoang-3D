@@ -1,5 +1,7 @@
 module main
 
+import time
+
 // ============================================================================
 //  pvp.v — arena PvP and the scheduled world boss.
 //
@@ -160,6 +162,31 @@ fn pvp_add_points(n int) {
 	}
 	s.pvp_rank = pvp_rank_from_points(s.pvp_points)
 	publish()
+}
+
+// pvp_daily_date: today's date as dd/mm/yyyy (thưởng ngày PvP).
+fn pvp_daily_date() string {
+	t := time.now()
+	return '${t.day}/${t.month}/${t.year}'
+}
+
+// claim_pvp_daily: the PvP daily reward — +150 vàng / +300 bạc / +50 EXP,
+// once per day (mirrors HTML claimPvpDaily). Returns true when the reward
+// was paid, false when it was already claimed today.
+fn claim_pvp_daily() bool {
+	mut s := gs()
+	today := pvp_daily_date()
+	if s.pvp_daily_date == today {
+		show_banner('Thưởng ngày PvP: đã nhận hôm nay, mai quay lại.')
+		return false
+	}
+	s.pvp_daily_date = today
+	add_gold(150)
+	add_silver(300)
+	gain_exp(50)
+	show_banner('Thưởng ngày PvP: +150 vàng / +300 bạc / +50 EXP!')
+	publish()
+	return true
 }
 
 // world_boss_is_open: true when the hour (0..23) falls in the boss window.

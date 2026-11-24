@@ -722,6 +722,12 @@ pub fn (mut w WaveSpawner) start() {
 
 pub fn (mut w WaveSpawner) update(dt f32) {
 	mut s := gs()
+	// Thị Trấn Song Ma là khu an toàn (town.v): vào thị trấn thì tắt spawn
+	// quái, ra khỏi thị trấn bật lại — guard này là điểm duy nhất làm được
+	// việc đó, vì WaveSpawner không có cờ bật/tắt riêng.
+	if s.in_town {
+		return
+	}
 	sc := w.scene()
 	mut world := sc.find('World/Enemies') or { return }
 	// HUD dungeon button: an extra wave from the current roster

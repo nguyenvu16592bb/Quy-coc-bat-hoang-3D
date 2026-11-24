@@ -84,6 +84,10 @@ node Main {
     Canvas { }
     HUDSync { }
     WorldMapUI { }
+    BattleDirector { }
+    BattlePanelUI { }
+    PvpPanelUI { }
+    TownPanelUI { }
     node Floats { }
     node TopLeft {
       Panel { color = [16, 24, 26, 212]  radius = 10  border_color = [212, 175, 106, 150]  border_width = 1  block_input = false }
@@ -189,6 +193,38 @@ node Main {
       Widget { align_right = true  right = 306  align_top = true  top = 12 }
       Label { text = "Góc 3D"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
       UITransform { size = [62, 40] }
+      Button { }
+    }
+    node BtnBattle {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [68, 40] }
+      Widget { align_right = true  right = 380  align_top = true  top = 12 }
+      Label { text = "Trận Hình"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [68, 40] }
+      Button { }
+    }
+    node BtnTown {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [68, 40] }
+      Widget { align_right = true  right = 454  align_top = true  top = 12 }
+      Label { text = "Thị Trấn"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [68, 40] }
+      Button { }
+    }
+    node BtnEnhance {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [68, 40] }
+      Widget { align_right = true  right = 528  align_top = true  top = 12 }
+      Label { text = "Cường Hóa"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [68, 40] }
+      Button { }
+    }
+    node BtnPvp {
+      Panel { color = [30, 40, 44, 235]  radius = 6  border_color = [140, 109, 63, 220]  border_width = 1 }
+      UITransform { size = [68, 40] }
+      Widget { align_right = true  right = 602  align_top = true  top = 12 }
+      Label { text = "Đấu Trường"  size = 11  color = [245, 216, 150]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      UITransform { size = [68, 40] }
       Button { }
     }
     node QuestPanel {
@@ -382,6 +418,417 @@ node Main {
       UITransform { size = [1100, 20] }
       Label { text = "WASD di chuyển · Click đi/đánh · 1-6 tuyệt kỹ · Space chém · R hồi huyết · M địa đồ · T đội hình · F1-F3 đổi nhân vật · [ ] chuyển map · Q-E/kéo chuột xoay · lăn zoom"  size = 13  color = [214, 197, 161, 225]  align = "center"  valign = "middle"  shadow_color = [0, 0, 0, 180]  shadow_offset = [1, 1] }
       UITransform { size = [1100, 20] }
+    }
+    # ---- Vòng 2: BattlePanel / TownPanel / EnhancePanel / PvpPanel ----
+    # Mở bằng 4 nút HUD mới (BtnBattle/BtnTown/BtnEnhance/BtnPvp) hoặc phím B;
+    # BattlePanelUI + TownPanelUI + PvpPanelUI (battle_map.v, town.v) nối nút
+    # với hàm thật, các số liệu tự cập nhật qua bind trong publish().
+    node BattlePanel {
+      active = false
+      Panel { color = [16, 24, 26, 235]  radius = 10  border_color = [212, 175, 106, 180]  border_width = 1 }
+      UITransform { size = [360, 452] }
+      Widget { align_center_x = true  center_x = 0  align_center_y = true  center_y = 0 }
+      node Header {
+        Widget { align_left = true  left = 12  align_top = true  top = 10 }
+        Label { text = "Trận Hình 5 Người — Auto-Battle & Raid Boss"  size = 13  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node ComboLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 40 }
+        Label { text = "Liên kích:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node ComboValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 40 }
+        Label { text = "0"  bind = "battle_combo"  bind_format = "{}"  size = 12  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node RageLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 64 }
+        Label { text = "Nộ khí:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node RageValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 64 }
+        Label { text = "0"  bind = "battle_rage"  bind_format = "{}"  size = 12  color = [255, 146, 43]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node PhaseLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 88 }
+        Label { text = "Giai đoạn Boss:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node PhaseValue {
+        Widget { align_left = true  left = 130  align_top = true  top = 88 }
+        Label { text = "1"  bind = "battle_phase"  bind_format = "{}"  size = 12  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node ThreatValue {
+        Widget { align_left = true  left = 12  align_top = true  top = 112 }
+        UITransform { size = [336, 20] }
+        Label { text = "Giữ aggro: Quỷ Cốc Tử (dps)"  size = 12  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [336, 20] }
+      }
+      node BossHpBar {
+        UITransform { size = [336, 14] }
+        Widget { align_left = true  left = 12  align_top = true  top = 138 }
+        ProgressBar { bind = "battle_boss_hp"  bind_max_key = "battle_boss_max"  progress = 0  fill_color = [255, 146, 43, 255]  back_color = [10, 12, 14, 215]  radius = 3 }
+      }
+      node LogTitle {
+        Widget { align_left = true  left = 12  align_top = true  top = 162 }
+        Label { text = "Nhật ký sát thương:"  size = 12  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node Log0 {
+        Widget { align_left = true  left = 12  align_top = true  top = 184 }
+        UITransform { size = [336, 18] }
+        Label { text = ""  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [336, 18] }
+      }
+      node Log1 {
+        Widget { align_left = true  left = 12  align_top = true  top = 202 }
+        UITransform { size = [336, 18] }
+        Label { text = ""  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [336, 18] }
+      }
+      node Log2 {
+        Widget { align_left = true  left = 12  align_top = true  top = 220 }
+        UITransform { size = [336, 18] }
+        Label { text = ""  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [336, 18] }
+      }
+      node Log3 {
+        Widget { align_left = true  left = 12  align_top = true  top = 238 }
+        UITransform { size = [336, 18] }
+        Label { text = ""  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [336, 18] }
+      }
+      node BtnExpand {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 264 }
+        Label { text = "Mở Trận 5 Người"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnAuto {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 188  align_top = true  top = 264 }
+        Label { text = "Tự Đánh: Tắt"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnRaid {
+        Panel { color = [52, 28, 26, 245]  radius = 5  border_color = [255, 107, 107, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 302 }
+        Label { text = "Khiêu Chiến Raid Boss"  size = 11  color = [255, 135, 135]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnClose {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 188  align_top = true  top = 302 }
+        Label { text = "Đóng"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnSpeed {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 340 }
+        Label { text = "Tốc Độ: x1"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnPause {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [160, 30] }
+        Widget { align_left = true  left = 188  align_top = true  top = 340 }
+        Label { text = "Tạm Dừng"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [160, 30] }
+        Button { }
+      }
+      node BtnSkip {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [336, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 378 }
+        Label { text = "Bỏ Qua Trận (hạ quái thường)"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [336, 30] }
+        Button { }
+      }
+      node Hint {
+        Widget { align_left = true  left = 12  align_top = true  top = 414 }
+        Label { text = "Phím B mở/đóng panel. Nộ khí đầy (100) bùng nổ +45% sát thương."  size = 11  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+    }
+    node TownPanel {
+      active = false
+      Panel { color = [16, 24, 26, 235]  radius = 10  border_color = [212, 175, 106, 180]  border_width = 1 }
+      UITransform { size = [380, 450] }
+      Widget { align_center_x = true  center_x = 0  align_center_y = true  center_y = 0 }
+      node Header {
+        Widget { align_left = true  left = 12  align_top = true  top = 10 }
+        Label { text = "Thị Trấn Song Ma — Khu An Toàn"  size = 13  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node SafeLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 36 }
+        UITransform { size = [356, 18] }
+        Label { text = "Khu An Toàn: không có yêu thú, WaveSpawner tạm dừng."  size = 11  color = [81, 207, 102]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [356, 18] }
+      }
+      node NpcSect {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [110, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 62 }
+        Label { text = "Trưởng Môn"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [110, 30] }
+        Button { }
+      }
+      node NpcShop {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [110, 30] }
+        Widget { align_left = true  left = 134  align_top = true  top = 62 }
+        Label { text = "Chủ Sạp"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [110, 30] }
+        Button { }
+      }
+      node NpcForge {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [110, 30] }
+        Widget { align_left = true  left = 256  align_top = true  top = 62 }
+        Label { text = "Thợ Rèn"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [110, 30] }
+        Button { }
+      }
+      node NpcDesc {
+        Widget { align_left = true  left = 12  align_top = true  top = 100 }
+        UITransform { size = [356, 18] }
+        Label { text = "Trưởng Môn: chọn một phái để nhập môn."  size = 11  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [356, 18] }
+      }
+      node SectTitle {
+        Widget { align_left = true  left = 12  align_top = true  top = 132 }
+        Label { text = "— Môn Phái —"  size = 12  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node SectValue {
+        Widget { align_left = true  left = 12  align_top = true  top = 152 }
+        UITransform { size = [356, 40] }
+        Label { text = "Môn phái: Thiếu Lâm — Cần cấp 5, 100 vàng."  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [356, 40] }
+      }
+      node BtnSectPrev {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 196 }
+        Label { text = "<"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnSectNext {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 84  align_top = true  top = 196 }
+        Label { text = ">"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnSectJoin {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [212, 30] }
+        Widget { align_left = true  left = 156  align_top = true  top = 196 }
+        Label { text = "Nhập Phái / Đổi Phái"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [212, 30] }
+        Button { }
+      }
+      node ShopTitle {
+        Widget { align_left = true  left = 12  align_top = true  top = 236 }
+        Label { text = "— Chợ —"  size = 12  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node ShopValue {
+        Widget { align_left = true  left = 12  align_top = true  top = 256 }
+        UITransform { size = [356, 40] }
+        Label { text = "Chợ: Hồi Huyết Đan — 50 vàng."  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [356, 40] }
+      }
+      node BtnShopPrev {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 300 }
+        Label { text = "<"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnShopNext {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 84  align_top = true  top = 300 }
+        Label { text = ">"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnBuy {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [212, 30] }
+        Widget { align_left = true  left = 156  align_top = true  top = 300 }
+        Label { text = "Mua"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [212, 30] }
+        Button { }
+      }
+      node ForgeTitle {
+        Widget { align_left = true  left = 12  align_top = true  top = 344 }
+        Label { text = "— Thợ Rèn —"  size = 12  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node ForgeHint {
+        Widget { align_left = true  left = 12  align_top = true  top = 364 }
+        UITransform { size = [356, 18] }
+        Label { text = "Thợ Rèn mở Lò Rèn (panel Cường Hóa) để rèn trang bị."  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [356, 18] }
+      }
+      node BtnLeave {
+        Panel { color = [52, 28, 26, 245]  radius = 5  border_color = [255, 107, 107, 200]  border_width = 1 }
+        UITransform { size = [170, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 396 }
+        Label { text = "Rời Thị Trấn"  size = 11  color = [255, 135, 135]  align = "center"  valign = "middle" }
+        UITransform { size = [170, 30] }
+        Button { }
+      }
+      node BtnClose {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [172, 30] }
+        Widget { align_left = true  left = 196  align_top = true  top = 396 }
+        Label { text = "Đóng"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [172, 30] }
+        Button { }
+      }
+    }
+    node EnhancePanel {
+      active = false
+      Panel { color = [16, 24, 26, 235]  radius = 10  border_color = [212, 175, 106, 180]  border_width = 1 }
+      UITransform { size = [340, 230] }
+      Widget { align_center_x = true  center_x = 0  align_center_y = true  center_y = 0 }
+      node Header {
+        Widget { align_left = true  left = 12  align_top = true  top = 10 }
+        Label { text = "Cường Hóa Trang Bị"  size = 13  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node EnhanceValue {
+        Widget { align_left = true  left = 12  align_top = true  top = 40 }
+        UITransform { size = [316, 40] }
+        Label { text = "Cường hóa: Vũ Khí (Trống) — hãy trang bị trước."  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [316, 40] }
+      }
+      node BtnSlotPrev {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 92 }
+        Label { text = "<"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnSlotNext {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [60, 30] }
+        Widget { align_left = true  left = 84  align_top = true  top = 92 }
+        Label { text = ">"  size = 12  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [60, 30] }
+        Button { }
+      }
+      node BtnEnhance {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [172, 30] }
+        Widget { align_left = true  left = 156  align_top = true  top = 92 }
+        Label { text = "Cường Hóa"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [172, 30] }
+        Button { }
+      }
+      node Hint {
+        Widget { align_left = true  left = 12  align_top = true  top = 132 }
+        UITransform { size = [316, 18] }
+        Label { text = "Mỗi cấp +8% chỉ số. Tỉ lệ giảm dần, tối đa +10."  size = 11  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [316, 18] }
+      }
+      node BtnClose {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [316, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 170 }
+        Label { text = "Đóng"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [316, 30] }
+        Button { }
+      }
+    }
+    node PvpPanel {
+      active = false
+      Panel { color = [16, 24, 26, 235]  radius = 10  border_color = [212, 175, 106, 180]  border_width = 1 }
+      UITransform { size = [340, 292] }
+      Widget { align_center_x = true  center_x = 0  align_center_y = true  center_y = 0 }
+      node Header {
+        Widget { align_left = true  left = 12  align_top = true  top = 10 }
+        Label { text = "Đấu Trường PvP"  size = 13  color = [245, 216, 150]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node RankLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 40 }
+        Label { text = "Hạng:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node RankValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 40 }
+        Label { text = "1000"  bind = "pvp_rank"  bind_format = "{}"  size = 12  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node PointsLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 64 }
+        Label { text = "Điểm PvP:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node PointsValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 64 }
+        Label { text = "0"  bind = "pvp_points"  bind_format = "{}"  size = 12  color = [255, 224, 130]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node WinsLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 88 }
+        Label { text = "Thắng:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node WinsValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 88 }
+        Label { text = "0"  bind = "pvp_wins"  bind_format = "{}"  size = 12  color = [81, 207, 102]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node LossesLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 112 }
+        Label { text = "Thua:"  size = 12  color = [232, 222, 200]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node LossesValue {
+        Widget { align_left = true  left = 110  align_top = true  top = 112 }
+        Label { text = "0"  bind = "pvp_losses"  bind_format = "{}"  size = 12  color = [255, 135, 135]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+      }
+      node BossLabel {
+        Widget { align_left = true  left = 12  align_top = true  top = 140 }
+        UITransform { size = [316, 18] }
+        Label { text = "Boss Thế Giới: Thiên Ma Tôn Chủ — mở 20h-21h."  size = 11  color = [214, 204, 184]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        UITransform { size = [316, 18] }
+      }
+      node BtnFight {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [150, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 172 }
+        Label { text = "Thách Đấu"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [150, 30] }
+        Button { }
+      }
+      node BtnWorldBoss {
+        Panel { color = [52, 28, 26, 245]  radius = 5  border_color = [255, 107, 107, 200]  border_width = 1 }
+        UITransform { size = [150, 30] }
+        Widget { align_left = true  left = 178  align_top = true  top = 172 }
+        Label { text = "Đánh Boss TG"  size = 11  color = [255, 135, 135]  align = "center"  valign = "middle" }
+        UITransform { size = [150, 30] }
+        Button { }
+      }
+      node BtnDaily {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [316, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 212 }
+        Label { text = "Thưởng Ngày PvP (+150 vàng/+300 bạc/+50 EXP)"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [316, 30] }
+        Button { }
+      }
+      node BtnClose {
+        Panel { color = [30, 40, 44, 235]  radius = 5  border_color = [140, 109, 63, 200]  border_width = 1 }
+        UITransform { size = [316, 30] }
+        Widget { align_left = true  left = 12  align_top = true  top = 250 }
+        Label { text = "Đóng"  size = 11  color = [214, 204, 184]  align = "center"  valign = "middle" }
+        UITransform { size = [316, 30] }
+        Button { }
+      }
     }
   }
 }

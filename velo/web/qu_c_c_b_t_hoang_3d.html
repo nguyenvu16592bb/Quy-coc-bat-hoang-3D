@@ -196,6 +196,10 @@
       background: #8c6d3f;
       border-radius: 4px;
     }
+    /* ===== NHOM 1: battle bar / combo / rage / log / raid / team ===== */
+    .g1-log-line{padding:1px 0;border-bottom:1px solid rgba(140,109,63,.25);white-space:normal;word-break:break-word}
+    #dmg-log-body::-webkit-scrollbar{width:4px}
+    #raid-hp-bar{transition:width .2s ease-out}
   </style>
 </head>
 <body>
@@ -364,6 +368,10 @@
               <span>✦ Ma Tôn Giáng Lâm</span>
               <span class="text-[9px] text-[#ff6b6b]">[BOSS]</span>
             </li>
+            <li onclick="startRaid()" class="cursor-pointer hover:text-[#ffe082] text-[#d6ccb8] flex items-center justify-between py-0.5 px-1 rounded hover:bg-white/5 font-semibold">
+              <span>🐸 Kim Thiềm Vương — Boss Raid</span>
+              <span class="text-[9px] text-[#51cf66]">[RAID 3 phase]</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -372,6 +380,15 @@
       <div id="system-banner" class="pointer-events-none absolute top-20 left-1/2 -translate-x-1/2 z-30 opacity-0 transition-opacity duration-300">
         <div class="px-5 py-1.5 rounded-full bg-gradient-to-r from-transparent via-[#2b1e12]/90 to-transparent border-y border-[#d4af6a] text-xs sm:text-sm font-bold text-[#ffe082] tracking-wider shadow-lg whitespace-nowrap">
           <span id="system-banner-text">Bát Hoang Kiếm Khí Khai Mở!</span>
+        </div>
+      </div>
+
+      <!-- NHOM 1: Raid boss bar -->
+      <div id="raid-bar" class="hidden absolute top-[104px] left-1/2 -translate-x-1/2 z-30 w-[min(92vw,420px)] pointer-events-auto">
+        <div class="wuxia-panel rounded p-2">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold text-[#ffe082]">🐸 Kim Thiềm Vương — Boss Raid</span><span id="raid-phase" class="text-[11px] font-bold text-[#ff8787]">Phase 1/3</span></div>
+          <div class="bar-bg relative h-4 rounded-sm overflow-hidden mt-1"><div id="raid-hp-bar" class="hp-fill h-full" style="width:100%"></div><div id="raid-hp-text" class="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white drop-shadow">20000 / 20000 HP</div></div>
+          <div class="flex items-center justify-between mt-1"><span id="raid-timer" class="text-[11px] font-bold text-[#9be7ff]">⏱ 120s</span><button class="mvl-btn red" style="min-height:44px;font-size:12px" onclick="leaveRaid()">🚪 Rời Raid</button></div>
         </div>
       </div>
 
@@ -456,6 +473,19 @@
         <div class="text-[10px] text-[#b4c8c9]/80 bg-black/50 px-3 py-0.5 rounded-full border border-white/10">
           Di chuyển: <b>WASD</b> hoặc <b>Click chuột trái</b> | Tuyệt kỹ: <b>1 - 6</b> | Thu phóng: <b>Con lăn chuột (35%)</b>
         </div>
+        <!-- NHOM 1: Battle bar — auto / pause / skip / speed / combo+rage / log -->
+        <div class="flex items-center gap-1.5 flex-wrap justify-center mt-1">
+          <button id="btn-auto" class="mvl-btn" onclick="toggleAutoBattle()">🤖 Tự đánh: Tắt</button>
+          <button id="btn-pause" class="mvl-btn" onclick="togglePause()">⏸ Tạm dừng</button>
+          <button class="mvl-btn" onclick="skipBattle()">⏭ Bỏ qua trận</button>
+          <button id="btn-speed" class="mvl-btn" onclick="toggleSpeed()">⚡ Tốc độ x1</button>
+          <button id="btn-rage" class="mvl-btn" onclick="castRageSkill()" disabled>🔥 Nộ Trảm (0/100)</button>
+          <button class="mvl-btn" onclick="toggleDmgLog()">📜 Nhật ký</button>
+        </div>
+        <div class="flex items-center gap-2 mt-1">
+          <span id="combo-text" class="text-[11px] font-bold text-[#ffe082] bg-black/55 px-2 py-1 rounded border border-[#8c6d3f]">Combo x0</span>
+          <span class="bar-bg relative h-4 w-28 sm:w-36 rounded-sm overflow-hidden inline-block"><span id="rage-fill" class="block h-full" style="width:0%;background:linear-gradient(90deg,#e8590c,#ffd43b)"></span><span id="rage-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow">Nộ 0/100</span></span>
+        </div>
       </div>
     </div>
 
@@ -476,6 +506,14 @@
         <button onclick="openPanel('bag')" class="mvl-btn" style="font-size:12px">🐾 <span id="pet-chip-text">Chưa có pet — mở Túi để chọn</span></button>
       </div>
 
+      <!-- NHOM 1: Nhat ky sat thuong -->
+      <div id="dmg-log" class="absolute left-3 bottom-[240px] z-30 w-60 max-w-[70vw] pointer-events-auto">
+        <div class="wuxia-panel rounded p-2">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-[#ffe082]">📜 Nhật ký sát thương</span><button class="mvl-close" onclick="toggleDmgLog()">✕</button></div>
+          <div id="dmg-log-body" class="text-[11px] leading-snug text-[#e8dec8] max-h-32 overflow-y-auto mt-1" style="min-height:24px"></div>
+        </div>
+      </div>
+
       <!-- MVL BOTTOM BAR -->
       <div class="mvl-bottom-bar" role="navigation" aria-label="Menu Mộng Võ Lâm">
         <button class="mvl-nav-btn" onclick="openPanel('bag')"><span class="ic">🎒</span><span>H. Túi</span></button>
@@ -484,15 +522,19 @@
         <button class="mvl-nav-btn" onclick="openPanel('event')"><span class="ic">🎉</span><span>S. Kiện</span></button>
         <button class="mvl-nav-btn" onclick="openPanel('shop')"><span class="ic">🛒</span><span>Chợ</span></button>
         <button class="mvl-nav-btn" onclick="openPanel('guild')"><span class="ic">🏰</span><span>B. Hội</span></button>
+        <button class="mvl-nav-btn" onclick="openPanel('team')"><span class="ic">👥</span><span>Đội Hình</span></button>
+        <button class="mvl-nav-btn" onclick="openPanel('pvp')"><span class="ic">🏆</span><span>Đ. Trường</span></button>
       </div>
 
       <!-- MVL PANELS -->
-      <div id="panel-bag" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🎒 Hành Trang — Túi đồ</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="bag-equip"></div><div id="bag-pet"></div><div id="bag-body"></div><div class="text-[11px] text-[#b4c8c9] mt-2">Bấm vật phẩm để Dùng / Trang bị / Bán. Quái và Boss rơi đồ sẽ tự cộng vào đây. Trang bị đang mặc hiện ở trên cùng, bấm Tháo để trả về Túi.</div></div>
+      <div id="panel-bag" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🎒 Hành Trang — Túi đồ</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="bag-equip"></div><div id="bag-enhance"></div><div id="bag-pet"></div><div id="bag-body"></div><div class="text-[11px] text-[#b4c8c9] mt-2">Bấm vật phẩm để Dùng / Trang bị / Bán. Quái và Boss rơi đồ sẽ tự cộng vào đây. Trang bị đang mặc hiện ở trên cùng, bấm Tháo để trả về Túi.</div></div>
       <div id="panel-sect" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>⚔️ Môn Phái — 8 đại phái</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="sect-body"></div></div>
       <div id="panel-activity" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>📜 Hoạt Động Hằng Ngày</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div class="text-[11px] text-[#b4c8c9] mb-2">Lượt tính theo ngày (đổi ngày là làm lại được). Bấm <b>Đi / Nhận</b> để hoàn thành và nhận thưởng thật.</div><div id="activity-body"></div></div>
       <div id="panel-event" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🎉 Sự Kiện Theo Giờ</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div class="text-[11px] text-[#b4c8c9] mb-2">Giờ theo đồng hồ thật của máy. Chỉ tham gia được khi sự kiện đang <b>Mở</b>, mỗi sự kiện nhận thưởng 1 lần/ngày.</div><div id="event-body"></div></div>
       <div id="panel-shop" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🛒 Chợ — Song Ma Quyền Phái</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="shop-wallet" class="text-[12px] font-bold text-[#ffe082] mb-2"></div><div id="shop-body"></div></div>
       <div id="panel-guild" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🏰 Bang Hội</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="guild-body"></div></div>
+      <div id="panel-team" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>👥 Đội Hình — 5 người</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="team-body"></div></div>
+      <div id="panel-pvp" class="mvl-panel hidden"><div class="flex items-center justify-between"><h3>🏆 Đấu Trường PvP</h3><button class="mvl-close" onclick="closePanels()">✕</button></div><div id="pvp-body"></div></div>
   </div>
 
   <!-- Three.js CDN -->
@@ -2152,7 +2194,8 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.05);
+      if (gameState.battlePaused) { renderer.render(scene, camera); return; }
+      const dt = Math.min(clock.getDelta(), 0.05) * (gameState.battleSpeed || 1);
       const elapsed = clock.getElapsedTime();
 
       // Update skill cooldowns & buffs
@@ -2415,7 +2458,13 @@
       jade_neck: { name: 'Dây Chuyền Ngọc Bích', icon: '📿', type: 'equip', slot: 'necklace', hp: 60, atk: 8, priceGold: 700, sellGold: 350, desc: 'Dây chuyền: +60 HP, +8 Công.' },
       linh_thao: { name: 'Linh Thảo', icon: '🌿', type: 'material', healHp: 40, priceSilver: 150, sellSilver: 75, desc: 'Dùng: hồi 40 HP. Nguyên liệu luyện đan.' },
       da_cuong_hoa:{ name: 'Đá Cường Hóa', icon: '💎', type: 'material', priceGold: 150, sellGold: 75, desc: 'Nguyên liệu cường hóa trang bị.' },
-      ngoc_linh: { name: 'Ngọc Linh Thạch', icon: '🔷', type: 'material', priceGold: 300, sellGold: 150, desc: 'Ngọc quý, bán được giá cao.' }
+      ngoc_linh: { name: 'Ngọc Linh Thạch', icon: '🔷', type: 'material', priceGold: 300, sellGold: 150, desc: 'Ngọc quý, bán được giá cao.' },
+      hong_ngoc: { name: 'Hồng Ngọc', icon: '🔴', type: 'gem', atk: 10, priceGold: 300, sellGold: 150, desc: 'Ngọc khảm: +10 Công.' },
+      luc_ngoc:  { name: 'Lục Ngọc', icon: '🟢', type: 'gem', hp: 60, priceGold: 300, sellGold: 150, desc: 'Ngọc khảm: +60 HP.' },
+      lam_ngoc:  { name: 'Lam Ngọc', icon: '🔵', type: 'gem', def: 8, priceGold: 300, sellGold: 150, desc: 'Ngọc khảm: +8 Thủ.' },
+      tu_ngoc:   { name: 'Tử Ngọc', icon: '🟣', type: 'gem', crit: 0.04, priceGold: 400, sellGold: 200, desc: 'Ngọc khảm: +4% Bạo kích.' },
+      kim_ngoc:  { name: 'Kim Ngọc', icon: '🟡', type: 'gem', atk: 20, def: 3, crit: 0.02, priceGold: 600, sellGold: 300, desc: 'Ngọc khảm: +20 Công, +3 Thủ, +2% Bạo.' },
+      huyet_ngoc:{ name: 'Huyết Ngọc', icon: '❤️', type: 'gem', atk: 8, hp: 100, priceGold: 500, sellGold: 250, desc: 'Ngọc khảm: +8 Công, +100 HP.' }
     };
     const SLOT_NAMES = { weapon: 'Vũ khí', armor: 'Áo', hat: 'Mũ', boots: 'Giày', ring: 'Nhẫn', necklace: 'Dây chuyền' };
     const SHOP_STOCK = ['hp_pill', 'mp_pill', 'rage_pill', 'wood_sword', 'iron_sword', 'iron_armor', 'iron_hat', 'wind_boots', 'jade_ring', 'jade_neck', 'linh_thao', 'ngoc_linh'];
@@ -2444,19 +2493,25 @@
     const EVENTS = [
       { id: 'boss_world', name: 'Boss Thế Giới — Kim Thiềm Vương', desc: 'Boss cóc xanh khổng lồ xuất hiện, đánh theo đội.', startHour: 8, durationH: 2, gold: 500, exp: 150, item: 'ngoc_linh' },
       { id: 'linh_thach', name: 'Tranh Đoạt Linh Thạch', desc: 'Tranh linh thạch ở Bát Hoang Bí Cảnh.', startHour: 12, durationH: 2, gold: 350, exp: 100, item: 'da_cuong_hoa' },
-      { id: 'bang_chien', name: 'Bang Chiến — Song Ma', desc: 'Bang hội quyết chiến, thắng nhận thưởng lớn.', startHour: 20, durationH: 2, gold: 600, exp: 200, item: 'jade_ring' }
+      { id: 'bang_chien', name: 'Bang Chiến — Song Ma', desc: 'Bang hội quyết chiến, thắng nhận thưởng lớn.', startHour: 20, durationH: 2, gold: 600, exp: 200, item: 'jade_ring' },
+      { id: 'linh_thu', name: 'Linh Thú Đại Hội', desc: 'Hội thi linh thú ở Quỷ Cốc Sơn, pet mạnh nhất thắng lớn.', startHour: 15, durationH: 2, gold: 400, exp: 120, item: 'da_cuong_hoa' },
+      { id: 'daugia', name: 'Đấu Giá Bát Hoang', desc: 'Đấu giá bảo vật ở Song Ma Quyền Phái.', startHour: 18, durationH: 1, gold: 450, exp: 100, item: 'hp_pill' }
     ];
 
     const PETS = [
       { id: 'thandieu', name: 'Thần Điêu', icon: '🦅', color: 0x8a6d3b, dmg: 25, desc: 'Thần điêu oai phong, mổ yêu thú mỗi 1,2 giây. Sát thương cơ bản 25.' },
       { id: 'holy', name: 'Hồ Ly', icon: '🦊', color: 0xd9480f, dmg: 18, desc: 'Hồ ly chín đuôi nhanh nhẹn. Sát thương cơ bản 18, đánh nhanh.' },
-      { id: 'kimthiem', name: 'Kim Thiềm', icon: '🐸', color: 0x51cf66, dmg: 32, desc: 'Cóc vàng khổng lồ như boss trong ảnh mẫu. Sát thương cơ bản 32.' }
+      { id: 'kimthiem', name: 'Kim Thiềm', icon: '🐸', color: 0x51cf66, dmg: 32, desc: 'Cóc vàng khổng lồ như boss trong ảnh mẫu. Sát thương cơ bản 32.' },
+      { id: 'thanhlong', name: 'Thanh Long', icon: '🐉', color: 0x2b8a3e, dmg: 30, desc: 'Thần thú phương Đông (pets.v): Long Ngâm Cửu Thiên — sát thương cơ bản 30, tuyệt kỹ 150.' },
+      { id: 'bachho', name: 'Bạch Hổ', icon: '🐯', color: 0xf1f3f5, dmg: 36, desc: 'Chúa tể phương Tây (pets.v): Hổ Gầm Sơn Lâm — sát thương cơ bản 36, tuyệt kỹ 170.' },
+      { id: 'chutuoc', name: 'Chu Tước', icon: '🔥', color: 0xe8590c, dmg: 34, desc: 'Chim lửa phương Nam (pets.v): Phượng Hoàng Lửa — sát thương cơ bản 34, tuyệt kỹ 180.' }
     ];
 
     const GUILD_PRESETS = [
       { name: 'Song Ma Quyền Phái', level: 5, members: 48 },
       { name: 'Bát Hoang Kiếm Tông', level: 4, members: 32 },
-      { name: 'Quỷ Cốc Ẩn Sĩ', level: 3, members: 21 }
+      { name: 'Quỷ Cốc Ẩn Sĩ', level: 3, members: 21 },
+      { name: 'Tiêu Dao Các', level: 3, members: 64 }
     ];
     const GUILD_MEMBERS = [
       { name: 'Trưởng Môn Song Ma', level: 38, role: 'Bang chủ' },
@@ -2486,7 +2541,8 @@
       { id: 'hp_pill', qty: 10 }, { id: 'mp_pill', qty: 8 }, { id: 'rage_pill', qty: 5 },
       { id: 'wood_sword', qty: 1 }, { id: 'cloth_armor', qty: 1 }, { id: 'cloth_hat', qty: 1 },
       { id: 'cloth_boots', qty: 1 }, { id: 'copper_ring', qty: 1 }, { id: 'wood_neck', qty: 1 },
-      { id: 'linh_thao', qty: 3 }, { id: 'da_cuong_hoa', qty: 2 }, { id: 'ngoc_linh', qty: 1 }
+      { id: 'linh_thao', qty: 3 }, { id: 'da_cuong_hoa', qty: 2 }, { id: 'ngoc_linh', qty: 1 },
+      { id: 'hong_ngoc', qty: 1 }, { id: 'luc_ngoc', qty: 1 }
     ];
     gameState.equipment = { weapon: null, armor: null, hat: null, boots: null, ring: null, necklace: null };
     gameState._baseMaxHp = gameState.maxHp;
@@ -2539,14 +2595,24 @@
     function recalcStats() {
       if (gameState._baseMaxHp === undefined) { gameState._baseMaxHp = gameState.maxHp; gameState._baseAtk = gameState.attackPower; gameState._baseDef = gameState.defense || 12; }
       var sec = sectDef();
-      var eqAtk = 0, eqHp = 0, eqDef = 0, eqMp = 0;
+      var eqAtk = 0, eqHp = 0, eqDef = 0, eqMp = 0, eqCrit = 0;
       Object.keys(gameState.equipment).forEach(function (slot) {
         var id = gameState.equipment[slot];
-        if (id && ITEMS[id]) { eqAtk += ITEMS[id].atk || 0; eqHp += ITEMS[id].hp || 0; eqDef += ITEMS[id].def || 0; eqMp += ITEMS[id].mp || 0; }
+        if (id && ITEMS[id]) {
+          // NHOM 1: cuong hoa +8% chi so goc moi cap (equipment.v) + ngoc kham
+          var lv = (gameState.enhanceLevels && gameState.enhanceLevels[slot]) || 0;
+          eqAtk += (ITEMS[id].atk || 0) + Math.floor((ITEMS[id].atk || 0) * lv * 8 / 100);
+          eqHp += (ITEMS[id].hp || 0) + Math.floor((ITEMS[id].hp || 0) * lv * 8 / 100);
+          eqDef += (ITEMS[id].def || 0) + Math.floor((ITEMS[id].def || 0) * lv * 8 / 100);
+          eqMp += ITEMS[id].mp || 0;
+          var gm = gameState.gemSlots && gameState.gemSlots[slot];
+          if (gm && ITEMS[gm]) { eqAtk += ITEMS[gm].atk || 0; eqHp += ITEMS[gm].hp || 0; eqDef += ITEMS[gm].def || 0; eqCrit += ITEMS[gm].crit || 0; }
+        }
       });
       gameState.maxHp = Math.max(1, gameState._baseMaxHp + (sec ? sec.hp : 0) + eqHp + guildBuffHp());
       gameState.attackPower = Math.max(1, gameState._baseAtk + (sec ? sec.atk : 0) + eqAtk + guildBuffAtk());
       gameState.defense = Math.max(0, gameState._baseDef + (sec ? sec.def : 0) + eqDef);
+      gameState.critChance = Math.min(0.9, (gameState._baseCrit || 0.35) + eqCrit);
       gameState.hp = Math.min(gameState.hp, gameState.maxHp);
       var st = document.getElementById('hud-stats');
       if (st) st.textContent = 'Công ' + gameState.attackPower + ' · Thủ ' + gameState.defense + ' · ' + (sec ? sec.name : 'Chưa nhập phái') + (gameState.guild ? ' · Bang: ' + gameState.guild.name : '');
@@ -2573,7 +2639,7 @@
     // --- Panel chung ---
     var currentPanel = null;
     function openPanel(name) {
-      ['bag', 'sect', 'activity', 'event', 'shop', 'guild'].forEach(function (n) {
+      ['bag', 'sect', 'activity', 'event', 'shop', 'guild', 'team', 'pvp'].forEach(function (n) {
         var el = document.getElementById('panel-' + n);
         if (el) el.classList.add('hidden');
       });
@@ -2581,15 +2647,17 @@
       if (!el) return;
       el.classList.remove('hidden');
       currentPanel = name;
-      if (name === 'bag') renderBag();
+      if (name === 'bag') { renderBag(); renderEnhance(); }
       if (name === 'sect') renderSect();
       if (name === 'activity') renderActivities();
       if (name === 'event') renderEvents();
       if (name === 'shop') renderShop();
       if (name === 'guild') renderGuild();
+      if (name === 'team') renderTeam();
+      if (name === 'pvp') renderPvp();
     }
     function closePanels() {
-      ['bag', 'sect', 'activity', 'event', 'shop', 'guild'].forEach(function (n) {
+      ['bag', 'sect', 'activity', 'event', 'shop', 'guild', 'team', 'pvp'].forEach(function (n) {
         var el = document.getElementById('panel-' + n);
         if (el) el.classList.add('hidden');
       });
@@ -2993,6 +3061,10 @@
           pills: gameState.pills, activitiesDone: gameState.activitiesDone, activityDate: gameState.activityDate,
           eventsClaimed: gameState.eventsClaimed, eventDate: gameState.eventDate,
           guildBossHp: gameState.guildBossHp,
+          enhanceLevels: gameState.enhanceLevels, gemSlots: gameState.gemSlots, enhanceAttempts: gameState.enhanceAttempts,
+          partyHeroes: gameState.partyHeroes,
+          pvpPoints: gameState.pvpPoints, pvpWins: gameState.pvpWins, pvpLosses: gameState.pvpLosses, pvpDailyDate: gameState.pvpDailyDate,
+          raidWins: gameState.raidWins, raidLosses: gameState.raidLosses,
           baseMaxHp: gameState._baseMaxHp, baseAtk: gameState._baseAtk, baseDef: gameState._baseDef
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -3019,6 +3091,15 @@
       gameState.activitiesDone = d.activitiesDone || {}; gameState.activityDate = d.activityDate || todayStr();
       gameState.eventsClaimed = d.eventsClaimed || {}; gameState.eventDate = d.eventDate || todayStr();
       gameState.guildBossHp = d.guildBossHp || 800;
+      // NHOM 1: khoi phuc he thong moi; save cu (khong co cac truong nay) giu mac dinh, khong crash
+      if (d.enhanceLevels && typeof d.enhanceLevels === 'object') { Object.keys(gameState.enhanceLevels).forEach(function (sl) { var v = d.enhanceLevels[sl]; if (typeof v === 'number' && v >= 0 && v <= 10) gameState.enhanceLevels[sl] = Math.floor(v); }); }
+      if (d.gemSlots && typeof d.gemSlots === 'object') { Object.keys(gameState.gemSlots).forEach(function (sl) { var g = d.gemSlots[sl]; gameState.gemSlots[sl] = (g && ITEMS[g] && ITEMS[g].type === 'gem') ? g : null; }); }
+      gameState.enhanceAttempts = (typeof d.enhanceAttempts === 'number' && d.enhanceAttempts >= 0) ? Math.floor(d.enhanceAttempts) : 0;
+      if (Array.isArray(d.partyHeroes) && d.partyHeroes.length === 5 && d.partyHeroes.every(function (id) { return HEROES.some(function (hh) { return hh.id === id; }); }) && new Set(d.partyHeroes).size === 5) gameState.partyHeroes = d.partyHeroes.slice();
+      gameState.pvpPoints = Math.max(0, d.pvpPoints || 0); gameState.pvpWins = d.pvpWins || 0; gameState.pvpLosses = d.pvpLosses || 0;
+      gameState.pvpDailyDate = d.pvpDailyDate || '';
+      gameState.raidWins = d.raidWins || 0; gameState.raidLosses = d.raidLosses || 0;
+      buildAllies();
       if (d.baseMaxHp) gameState._baseMaxHp = d.baseMaxHp;
       if (d.baseAtk) gameState._baseAtk = d.baseAtk;
       if (d.baseDef) gameState._baseDef = d.baseDef;
@@ -3043,6 +3124,607 @@
     setInterval(function () { saveGame(false); }, 15000);
     window.addEventListener('beforeunload', function () { saveGame(false); });
 
+    // ==========================================
+    // 12. NHOM 1 — DOI HINH 5 NGUOI / AUTO-BATTLE / BOSS RAID /
+    //     COMBO + NO KHI / NHAT KY SAT THUONG / CUONG HOA + KHAM NGOC /
+    //     PVP + BOSS THE GIOI (chi them moi, khong sua ham combat cu)
+    //     Cong thuc goc: velo/quycoc3d/equipment.v, pvp.v, pets.v,
+    //     team.v, guild.v, content.v.
+    // ==========================================
+    var HEROES = [
+      { id: 0, name: 'Quỷ Cốc Tử', title: 'Bát Hoang Kiếm Chủ', role: 'dps', tint: 0xfff4e2, blade: 0xffd65a, hpMult: 1.0, atkMult: 1.0 },
+      { id: 1, name: 'Lãnh Nguyệt', title: 'Băng Tâm Kiếm Khách', role: 'support', tint: 0xcde8ff, blade: 0x84e0ff, hpMult: 0.95, atkMult: 1.05 },
+      { id: 2, name: 'Huyết Đao', title: 'Huyết Ma Đao Vương', role: 'tank', tint: 0xffc6be, blade: 0xff6058, hpMult: 1.15, atkMult: 1.25 },
+      { id: 3, name: 'Thanh Vũ', title: 'Lưu Vân Nhanh Kiếm', role: 'dps', tint: 0xceffde, blade: 0x78f6aa, hpMult: 0.9, atkMult: 1.0 },
+      { id: 4, name: 'Hỏa Linh', title: 'Xích Diễm Pháp Sư', role: 'dps', tint: 0xffd6b0, blade: 0xff9440, hpMult: 0.85, atkMult: 1.2 },
+      { id: 5, name: 'Kim Cương', title: 'Kim Cang Thiền Sư', role: 'tank', tint: 0xffedbe, blade: 0xffc45c, hpMult: 1.35, atkMult: 0.9 },
+      { id: 6, name: 'Tử Yên', title: 'Ám Ảnh Sát Thủ', role: 'dps', tint: 0xe8ceff, blade: 0xc488ff, hpMult: 0.8, atkMult: 1.1 },
+      { id: 7, name: 'Bạch Hổ', title: 'Ngự Thú Sư', role: 'healer', tint: 0xf6e8d0, blade: 0x9ee296, hpMult: 1.1, atkMult: 1.05 }
+    ];
+    var ROLE_NAMES = { tank: 'Tank', dps: 'DPS', healer: 'Hồi máu', support: 'Hỗ trợ' };
+    var ROW_NAMES = { front: 'Hàng trước', mid: 'Hàng giữa', back: 'Hàng sau' };
+    function heroDefG1(id) { return HEROES.find(function (h) { return h.id === id; }) || HEROES[0]; }
+    function heroRow(h) { return h.role === 'tank' ? 'front' : (h.role === 'healer' || h.role === 'support') ? 'back' : 'mid'; }
+
+    // --- Trang thai moi (mac dinh; save/load mo rong o ham goc) ---
+    gameState.enhanceLevels = { weapon: 0, armor: 0, hat: 0, boots: 0, ring: 0, necklace: 0 };
+    gameState.gemSlots = { weapon: null, armor: null, hat: null, boots: null, ring: null, necklace: null };
+    gameState.enhanceAttempts = 0;
+    gameState.partyHeroes = [0, 1, 2, 5, 7]; // chuẩn chung vòng 2: khớp V hero_ids [0,1,2] + extra [5,7]
+    gameState.combo = 0; gameState.comboTimer = 0; gameState.rage = 0;
+    gameState.autoBattle = false; gameState.battleSpeed = 1; gameState.battlePaused = false;
+    gameState.pvpPoints = 0; gameState.pvpWins = 0; gameState.pvpLosses = 0; gameState.pvpDailyDate = '';
+    gameState.raidWins = 0; gameState.raidLosses = 0;
+
+    // --- PvP: 8 doi thu goc tu pvp.v (ten / title / power / rank) ---
+    var PVP_OPPONENTS = [
+      { rank: 1000, name: 'Tân Thủ Luyện Kiếm', title: 'Mới vào giang hồ', power: 80 },
+      { rank: 800, name: 'Đệ Tử Ngoại Môn', title: 'Luyện khí sơ kỳ', power: 150 },
+      { rank: 600, name: 'Đệ Tử Nội Môn', title: 'Trúc Cơ sơ kỳ', power: 260 },
+      { rank: 400, name: 'Chân Truyền Đệ Tử', title: 'Kim Đan sơ kỳ', power: 420 },
+      { rank: 200, name: 'Trưởng Lão Ngoại Môn', title: 'Nguyên Anh sơ kỳ', power: 650 },
+      { rank: 100, name: 'Trưởng Lão Nội Môn', title: 'Hóa Thần sơ kỳ', power: 900 },
+      { rank: 50, name: 'Chưởng Môn Kế Vị', title: 'Hóa Thần hậu kỳ', power: 1200 },
+      { rank: 10, name: 'Võ Lâm Minh Chủ', title: 'Đăng Tiên Cảnh', power: 1600 }
+    ];
+    var WORLD_BOSS = { name: 'Thiên Ma Tôn Chủ', openHour: 20, closeHour: 21, maxHp: 200000, rewardGold: 5000, rewardStone: 50 };
+    function pvpRankFromPoints(pts) { return Math.max(1, 1000 - Math.floor(pts / 10)); }
+    function worldBossIsOpen(hour) { return hour >= 0 && hour <= 23 && hour >= WORLD_BOSS.openHour && hour < WORLD_BOSS.closeHour; }
+    function worldBossReward(damage) {
+      if (damage >= 20000) return WORLD_BOSS.rewardGold;
+      if (damage >= 10000) return WORLD_BOSS.rewardGold / 2;
+      if (damage >= 2000) return WORLD_BOSS.rewardGold / 5;
+      return 0;
+    }
+
+    // --- Tong chi so trang bi: goc + cuong hoa (+8%/cap, equipment.v) + ngoc ---
+    function equipBonus() {
+      var t = { atk: 0, hp: 0, def: 0, crit: 0 };
+      Object.keys(gameState.equipment).forEach(function (slot) {
+        var id = gameState.equipment[slot]; if (!id || !ITEMS[id]) return;
+        var lv = (gameState.enhanceLevels && gameState.enhanceLevels[slot]) || 0;
+        var d = ITEMS[id];
+        t.atk += Math.floor((d.atk || 0) * lv * 8 / 100);
+        t.hp += Math.floor((d.hp || 0) * lv * 8 / 100);
+        t.def += Math.floor((d.def || 0) * lv * 8 / 100);
+        var gm = gameState.gemSlots && gameState.gemSlots[slot];
+        if (gm && ITEMS[gm]) { t.atk += ITEMS[gm].atk || 0; t.hp += ITEMS[gm].hp || 0; t.def += ITEMS[gm].def || 0; t.crit += ITEMS[gm].crit || 0; }
+      });
+      return t;
+    }
+    function equipTotals() {
+      var t = equipBonus();
+      Object.keys(gameState.equipment).forEach(function (slot) {
+        var id = gameState.equipment[slot]; if (!id || !ITEMS[id]) return;
+        t.atk += ITEMS[id].atk || 0; t.hp += ITEMS[id].hp || 0; t.def += ITEMS[id].def || 0;
+      });
+      return t;
+    }
+    function pvpPower() {
+      var sec = sectDef();
+      return gameState.attackPower + gameState.level * 5 + equipTotals().atk + petDamage() + (sec ? sec.atk : 0);
+    }
+
+    // --- Nhat ky sat thuong (gi nhat 50 dong, cuon duoc) ---
+    var dmgLogLines = [];
+    function addDmgLog(text) {
+      var now = new Date();
+      var ts = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+      dmgLogLines.push(ts + ' ' + text);
+      if (dmgLogLines.length > 50) dmgLogLines.shift();
+      var el = document.getElementById('dmg-log-body');
+      if (el) { el.innerHTML = dmgLogLines.map(function (l) { return '<div class="g1-log-line">' + escHtml(l) + '</div>'; }).join(''); el.scrollTop = el.scrollHeight; }
+    }
+    function toggleDmgLog() { var el = document.getElementById('dmg-log'); if (el) el.classList.toggle('hidden'); }
+
+    // --- Combo + No khi: boc damageEnemy goc (khong sua than ham cu) ---
+    var _g1LastAttacker = 'Bạn';
+    var _g1DamageEnemyOrig = damageEnemy;
+    damageEnemy = function (enemy, rawDamage, knockForce, isSkill) {
+      var before = enemy ? enemy.hp : 0;
+      _g1DamageEnemyOrig(enemy, rawDamage, knockForce, isSkill);
+      var dealt = Math.max(0, before - (enemy ? enemy.hp : 0));
+      if (dealt > 0) {
+        gameState.combo = (gameState.combo || 0) + 1;
+        gameState.comboTimer = 3;
+        gameState.rage = Math.min(100, (gameState.rage || 0) + (isSkill ? 12 : 8));
+        addDmgLog(_g1LastAttacker + ' -' + dealt + ' ' + (enemy && enemy.isBoss ? 'Boss' : 'quái'));
+        updateComboUI();
+      }
+    };
+    function updateComboUI() {
+      var c = document.getElementById('combo-text'); if (c) c.textContent = 'Combo x' + (gameState.combo || 0);
+      var r = document.getElementById('rage-fill'); if (r) r.style.width = (gameState.rage || 0) + '%';
+      var rt = document.getElementById('rage-text'); if (rt) rt.textContent = 'Nộ ' + (gameState.rage || 0) + '/100';
+      var b = document.getElementById('btn-rage');
+      if (b) { b.disabled = (gameState.rage || 0) < 100; b.textContent = (gameState.rage || 0) >= 100 ? '🔥 Nộ Trảm — SẴN SÀNG!' : '🔥 Nộ Trảm (' + (gameState.rage || 0) + '/100)'; }
+    }
+    function castRageSkill() {
+      if ((gameState.rage || 0) < 100) { showSystemBanner('Nộ khí chưa đầy! Đánh trúng để tích nộ (đang ' + (gameState.rage || 0) + '/100).'); return; }
+      var target = findNearestEnemy(16); if (!target) { showSystemBanner('Không có quái gần đây để dùng Nộ Trảm!'); return; }
+      var dmg = gameState.attackPower * 4 + (gameState.combo || 0) * 10;
+      createGoldenWhirlwindVFX(player.root.position, 6, 0.7);
+      _g1LastAttacker = 'Bạn (Nộ Trảm)';
+      enemies.slice().forEach(function (e) { if (player.root.position.distanceTo(e.mesh.position) <= 6) damageEnemy(e, dmg, 10, true); });
+      _g1LastAttacker = 'Bạn';
+      // Tieu het no SAU khi gay sat thuong (don No Tram tu no lai cong no neu reset truoc).
+      gameState.rage = 0; gameState.combo = 0; gameState.comboTimer = 0;
+      addDmgLog('💥 Nộ Trảm! Công cơ bản ' + dmg + ' (x4 Công + 10/Combo) lên quái trong 6m.');
+      updateComboUI(); saveGame(false);
+    }
+
+    // --- Auto-battle / Tam dung / Toc do / Bo qua ---
+    function toggleAutoBattle() {
+      gameState.autoBattle = !gameState.autoBattle;
+      var b = document.getElementById('btn-auto');
+      if (b) { b.textContent = gameState.autoBattle ? '🤖 Tự đánh: BẬT' : '🤖 Tự đánh: Tắt'; b.classList.toggle('green', gameState.autoBattle); }
+      showSystemBanner(gameState.autoBattle ? 'Tự đánh BẬT: đội tự tìm quái, dùng skill, uống đan khi HP thấp.' : 'Tự đánh TẮT: bạn điều khiển tay hoàn toàn.');
+      saveGame(false);
+    }
+    function togglePause() {
+      gameState.battlePaused = !gameState.battlePaused;
+      var b = document.getElementById('btn-pause');
+      if (b) { b.textContent = gameState.battlePaused ? '▶ Tiếp tục' : '⏸ Tạm dừng'; b.classList.toggle('green', gameState.battlePaused); }
+      showSystemBanner(gameState.battlePaused ? 'Đã tạm dừng trận đấu.' : 'Tiếp tục trận đấu.');
+    }
+    function toggleSpeed() {
+      gameState.battleSpeed = (gameState.battleSpeed === 1) ? 2 : 1;
+      var b = document.getElementById('btn-speed'); if (b) b.textContent = '⚡ Tốc độ x' + gameState.battleSpeed;
+      showSystemBanner('Tốc độ battle: x' + gameState.battleSpeed + '.');
+    }
+    function skipBattle() {
+      if (raid.active) { resolveRaidSkip(); return; }
+      var normals = enemies.filter(function (e) { return !e.isBoss; });
+      if (!normals.length) { showSystemBanner('Không có quái thường để bỏ qua (Boss phải đánh tay)!'); return; }
+      var n = normals.length;
+      normals.slice().forEach(function (e) { killEnemy(e); });
+      addDmgLog('⏭ Bỏ qua trận: hạ ' + n + ' quái thường.');
+      showSystemBanner('Đã bỏ qua trận: hạ ' + n + ' quái thường (nhận đủ EXP/vàng/rơi đồ như đánh tay).');
+      saveGame(false);
+    }
+    function autoBattleTick() {
+      if (!gameState.autoBattle || gameState.battlePaused || gameState.townMode) return;
+      if (gameState.hp < gameState.maxHp * 0.25 && countItem('hp_pill') > 0) useConsumable('hp'); // chuẩn chung vòng 2: ngưỡng 25% như V (s.hp < s.max_hp / 4)
+      if (gameState.mp < gameState.maxMp * 0.25 && countItem('mp_pill') > 0) useConsumable('mp');
+      if (gameState.hp < gameState.maxHp * 0.4 && gameState.mp >= 35 && skills[4].currentCd <= 0) { castSkill(4); return; }
+      var target = findNearestEnemy(20);
+      if (!target) return;
+      var d = player.root.position.distanceTo(target.mesh.position);
+      if (d > 3.2) { gameState.targetPos = target.mesh.position.clone(); return; }
+      if (gameState.mp >= 50 && skills[5].currentCd <= 0) castSkill(5);
+      else if (gameState.mp >= 30 && skills[2].currentCd <= 0) castSkill(2);
+      else if (gameState.mp >= 25 && skills[3].currentCd <= 0) castSkill(3);
+      else if (gameState.mp >= 15 && skills[1].currentCd <= 0) castSkill(1);
+      else castSkill(0);
+    }
+
+    // --- Doi hinh 5 nguoi: dong doi tren map + tran hinh 3 hang ---
+    var allies = [];
+    var selectedPartySlot = 1;
+    function partyHeroAt(slot) { return heroDefG1(gameState.partyHeroes[slot]); }
+    function allyMaxHp(hero) { return Math.round(120 * hero.hpMult + gameState.level * 10); }
+    function createAllyMesh(hero) {
+      var g = new THREE.Group();
+      var body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.85, 10), new THREE.MeshStandardMaterial({ color: hero.tint, roughness: 0.7 }));
+      body.position.y = 0.75; body.castShadow = true; g.add(body);
+      var head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color: 0xf7cfb4, roughness: 0.6 }));
+      head.position.y = 1.45; g.add(head);
+      var sword = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.15, 0.22), new THREE.MeshStandardMaterial({ color: hero.blade, metalness: 0.6, roughness: 0.35, emissive: hero.blade, emissiveIntensity: 0.25 }));
+      sword.position.set(0.5, 0.9, 0.15); sword.rotation.x = 0.5; g.add(sword);
+      var ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 24), new THREE.MeshBasicMaterial({ color: hero.blade, side: THREE.DoubleSide, transparent: true, opacity: 0.55 }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
+      g.scale.setScalar(0.92);
+      return g;
+    }
+    function buildAllies() {
+      allies.forEach(function (a) { if (a.mesh) scene.remove(a.mesh); });
+      allies = [];
+      for (var slot = 1; slot <= 4; slot++) {
+        var hero = partyHeroAt(slot);
+        var mesh = createAllyMesh(hero);
+        mesh.position.copy(player.root.position).add(new THREE.Vector3(slot * 1.5 - 3, 0, 2));
+        scene.add(mesh);
+        allies.push({ slot: slot, hero: hero, mesh: mesh, hp: allyMaxHp(hero), maxHp: allyMaxHp(hero), cd: 0.4 + slot * 0.3, healCd: 0, down: false });
+      }
+    }
+    function formationOffset(slot) {
+      if (slot === 1) return { f: 2.4, r: 0 };
+      if (slot === 2) return { f: 0.6, r: -1.9 };
+      if (slot === 3) return { f: 0.6, r: 1.9 };
+      return { f: -2.2, r: 0 };
+    }
+    function findNearestEnemyFrom(pos, maxRange) {
+      var best = null, bestD = maxRange;
+      enemies.forEach(function (e) { var d = pos.distanceTo(e.mesh.position); if (d < bestD) { bestD = d; best = e; } });
+      return best;
+    }
+    function lowestHpAllyOrHero() {
+      var worst = null, worstRatio = 0.55;
+      if (gameState.hp / gameState.maxHp < worstRatio) { worst = { isHero: true }; worstRatio = gameState.hp / gameState.maxHp; }
+      allies.forEach(function (a) {
+        var ratio = a.hp / a.maxHp;
+        if (ratio < worstRatio) { worst = { isHero: false, ally: a }; worstRatio = ratio; }
+      });
+      return worst;
+    }
+    function applyAllyDamage(a, dmg) {
+      a.hp = Math.max(0, a.hp - dmg);
+      spawnFloatingText(a.mesh.position, '-' + dmg, 'dmg-normal');
+      if (a.hp <= 0 && !a.down) { a.down = true; a.mesh.visible = false; addDmgLog('💔 ' + a.hero.name + ' đã ngã! Healer sẽ hồi sinh.'); }
+    }
+    function alliesTick(dt) {
+      if (!allies.length || gameState.battlePaused) return;
+      var ry = player.root.rotation.y;
+      var fx = Math.sin(ry), fz = Math.cos(ry), rx = Math.cos(ry), rz = -Math.sin(ry);
+      allies.forEach(function (a) {
+        if (!a.mesh) return;
+        var off = formationOffset(a.slot);
+        var tx = player.root.position.x + fx * off.f + rx * off.r;
+        var tz = player.root.position.z + fz * off.f + rz * off.r;
+        a.mesh.position.x += (tx - a.mesh.position.x) * Math.min(1, dt * 5);
+        a.mesh.position.z += (tz - a.mesh.position.z) * Math.min(1, dt * 5);
+        a.cd -= dt; a.healCd -= dt;
+        if (a.down) return;
+        if (a.hero.role === 'healer' && a.healCd <= 0) {
+          var target = lowestHpAllyOrHero();
+          if (target) {
+            a.healCd = 3;
+            var amt = 25 + gameState.level * 3;
+            if (target.isHero) { gameState.hp = Math.min(gameState.maxHp, gameState.hp + amt); spawnFloatingText(player.root.position, '+' + amt + ' HP', 'dmg-heal'); }
+            else { target.ally.hp = Math.min(target.ally.maxHp, target.ally.hp + amt); if (target.ally.down) { target.ally.down = false; target.ally.mesh.visible = true; } spawnFloatingText(target.ally.mesh.position, '+' + amt + ' HP', 'dmg-heal'); }
+            addDmgLog('💚 ' + a.hero.name + ' hồi ' + amt + ' HP cho ' + (target.isHero ? 'Quỷ Cốc' : target.ally.hero.name) + '.');
+          }
+        }
+        if (gameState.townMode) return;
+        var foe = findNearestEnemyFrom(a.mesh.position, 3.6);
+        if (foe && a.cd <= 0) {
+          a.cd = 1.15;
+          var dmg = Math.max(1, Math.round(gameState.attackPower * a.hero.atkMult * 0.55));
+          _g1LastAttacker = a.hero.name;
+          damageEnemy(foe, dmg, 4, false);
+          _g1LastAttacker = 'Bạn';
+        }
+      });
+    }
+    function renderTeam() {
+      var body = document.getElementById('team-body'); if (!body) return;
+      var h = '<p class="text-[12px] mb-2">Đội hình <b>5 người</b> (đội trưởng Quỷ Cốc + 4 đồng đội). Bấm 1 ô rồi bấm ô khác để <b>đổi chỗ</b>; bấm <b>Vào đội</b> trong danh sách để đổi thành viên vào ô đang chọn. Tank đứng hàng trước, DPS hàng giữa, Hồi máu/Hỗ trợ hàng sau. Đồng đội tự đánh cùng bạn trên map (sát thương = Công x hệ số x 0.55, theo team.v).</p>';
+      h += '<h3 style="font-size:13px">Đội hình ra trận</h3><div class="mvl-grid">';
+      for (var slot = 0; slot <= 4; slot++) {
+        var hero = partyHeroAt(slot);
+        h += '<div class="mvl-item" style="' + (selectedPartySlot === slot ? 'border-color:#ffe082;background:rgba(255,213,79,.12)' : '') + '"><span class="ic">' + (slot === 0 ? '👑' : '🧑') + '</span><span class="nm">' + hero.name + '</span><div style="font-size:11px">' + ROLE_NAMES[hero.role] + ' • ' + ROW_NAMES[heroRow(hero)] + '<br>' + hero.title + (slot === 0 ? '<br><b>Đội trưởng</b>' : '') + '</div>' +
+          '<button class="mvl-btn" style="min-height:44px;margin-top:4px;font-size:12px" onclick="selectPartySlot(' + slot + ')">' + (selectedPartySlot === slot ? '✓ Đang chọn' : 'Chọn ô này') + '</button></div>';
+      }
+      h += '</div><h3 style="font-size:13px;margin-top:8px">Danh sách 8 anh hùng (content.v)</h3>';
+      HEROES.forEach(function (hero) {
+        var inParty = gameState.partyHeroes.indexOf(hero.id) >= 0;
+        h += '<div class="mvl-row"><div class="t"><b>' + hero.name + '</b><div class="sub">' + hero.title + ' • ' + ROLE_NAMES[hero.role] + ' • Công x' + hero.atkMult + ', HP x' + hero.hpMult + (inParty ? ' • <b style="color:#8ce99a">Đang trong đội</b>' : '') + '</div></div>' +
+          '<button class="mvl-btn" onclick="assignHeroToSlot(' + hero.id + ')">Vào đội</button></div>';
+      });
+      body.innerHTML = h;
+    }
+    function selectPartySlot(slot) {
+      if (selectedPartySlot === slot || slot === 0 || selectedPartySlot === 0) { selectedPartySlot = slot; renderTeam(); return; }
+      var a = gameState.partyHeroes[selectedPartySlot], b = gameState.partyHeroes[slot];
+      gameState.partyHeroes[selectedPartySlot] = b; gameState.partyHeroes[slot] = a;
+      selectedPartySlot = slot;
+      buildAllies(); renderTeam(); saveGame(false);
+      showSystemBanner('Đã đổi chỗ: ' + heroDefG1(b).name + ' ↔ ' + heroDefG1(a).name + '.');
+    }
+    function assignHeroToSlot(heroId) {
+      var slot = selectedPartySlot;
+      if (slot === 0) { showSystemBanner('Đội trưởng luôn là Quỷ Cốc — hãy chọn ô 2-5 để đổi thành viên!'); return; }
+      var cur = gameState.partyHeroes[slot];
+      if (cur === heroId) { showSystemBanner(heroDefG1(heroId).name + ' đã ở ô này rồi!'); return; }
+      var other = gameState.partyHeroes.indexOf(heroId);
+      if (other >= 0) gameState.partyHeroes[other] = cur;
+      gameState.partyHeroes[slot] = heroId;
+      buildAllies(); renderTeam(); saveGame(false);
+      showSystemBanner(heroDefG1(heroId).name + ' đã vào đội hình (' + ROW_NAMES[heroRow(heroDefG1(heroId))] + ')!');
+    }
+
+    // --- Boss Raid: Kim Thiem Vuong 3 phase (kieu anh boss Coc Xanh) ---
+    var raid = { active: false, boss: null, phase: 1, timeLeft: 120, aoeTimer: 3, aoePending: null };
+    var raidAoeMesh = null;
+    function startRaid() {
+      if (raid.active) { showSystemBanner('Raid Kim Thiềm Vương đang diễn ra!'); return; }
+      if (gameState.townMode) { showSystemBanner('Hãy ra khỏi thị trấn trước khi đánh Raid!'); return; }
+      closePanels();
+      var boss = create3DMonster('boss');
+      boss.mesh.scale.setScalar(3.2);
+      boss.hp = boss.maxHp = 20000;
+      boss.damage = 30; boss.speed = 2.0;
+      raid = { active: true, boss: boss, phase: 1, timeLeft: 120, aoeTimer: 3, aoePending: null };
+      var bar = document.getElementById('raid-bar'); if (bar) bar.classList.remove('hidden');
+      showSystemBanner('🐸 RAID: Kim Thiềm Vương khổng lồ xuất hiện! Hạ trong 120 giây!');
+      addDmgLog('🐸 Raid bắt đầu: Kim Thiềm Vương HP 20000 (3 phase, đổi ở 66% / 33%).');
+      updateRaidBar(); saveGame(false);
+    }
+    function updateRaidBar() {
+      if (!raid.active || !raid.boss) return;
+      var pct = Math.max(0, raid.boss.hp / raid.boss.maxHp * 100);
+      var bar = document.getElementById('raid-hp-bar'); if (bar) bar.style.width = pct + '%';
+      var t = document.getElementById('raid-hp-text'); if (t) t.textContent = fmt(Math.max(0, raid.boss.hp)) + ' / ' + fmt(raid.boss.maxHp) + ' HP';
+      var p = document.getElementById('raid-phase'); if (p) p.textContent = 'Phase ' + raid.phase + '/3';
+      var tm = document.getElementById('raid-timer'); if (tm) tm.textContent = '⏱ ' + Math.max(0, Math.ceil(raid.timeLeft)) + 's';
+    }
+    function raidSpawnMinions(n) {
+      for (var i = 0; i < n; i++) { var m = create3DMonster('ghoul'); m.hp = m.maxHp = 300; }
+      showSystemBanner('🐸 Kim Thiềm Vương gọi ' + n + ' cóc con! (Phase ' + raid.phase + ')');
+      addDmgLog('🐸 Boss gọi ' + n + ' cóc con (Phase ' + raid.phase + ').');
+    }
+    function raidStartAoe() {
+      if (!raid.boss || !raid.boss.mesh) return;
+      var mat = new THREE.MeshBasicMaterial({ color: 0xff2222, side: THREE.DoubleSide, transparent: true, opacity: 0.45 });
+      var mesh = new THREE.Mesh(new THREE.RingGeometry(0.5, 5.5, 40), mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(raid.boss.mesh.position.x, 0.12, raid.boss.mesh.position.z);
+      scene.add(mesh); raidAoeMesh = mesh;
+      raid.aoePending = { x: mesh.position.x, z: mesh.position.z, t: 1.2 };
+      showSystemBanner('⚠️ Vòng đỏ AoE! Chạy ra ngoài vòng đỏ trong 1,2 giây!');
+    }
+    function raidDetonateAoe() {
+      var p = raid.aoePending; raid.aoePending = null;
+      if (raidAoeMesh) { scene.remove(raidAoeMesh); raidAoeMesh = null; }
+      raid.aoeTimer = raid.phase >= 3 ? 2.5 : 4;
+      var dx = player.root.position.x - p.x, dz = player.root.position.z - p.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 5.5) {
+        var dmg = 90;
+        gameState.hp = Math.max(15, gameState.hp - dmg);
+        spawnFloatingText(player.root.position, '-' + dmg + ' (AoE)', 'dmg-normal');
+        addDmgLog('🔴 Bạn trúng AoE của Boss -' + dmg + ' HP (đứng trong vòng đỏ).');
+      } else { addDmgLog('🔴 Bạn né được AoE của Boss (đứng ngoài vòng đỏ).'); }
+      allies.forEach(function (a) {
+        if (a.down || !a.mesh) return;
+        var ax = a.mesh.position.x - p.x, az = a.mesh.position.z - p.z;
+        if (Math.sqrt(ax * ax + az * az) < 5.5) applyAllyDamage(a, 60);
+      });
+    }
+    function raidTick(dt) {
+      if (!raid.active || !raid.boss) return;
+      if (gameState.battlePaused) return;
+      raid.timeLeft -= dt;
+      var ratio = raid.boss.hp / raid.boss.maxHp;
+      if (raid.phase === 1 && ratio <= 0.66) { raid.phase = 2; raidSpawnMinions(3); } // chuẩn chung vòng 2: mỗi lần đổi phase gọi 3 con, như V
+      else if (raid.phase === 2 && ratio <= 0.33) { raid.phase = 3; raidSpawnMinions(3); }
+      if (raid.aoePending) {
+        raid.aoePending.t -= dt;
+        if (raid.aoePending.t <= 0) raidDetonateAoe();
+      } else {
+        raid.aoeTimer -= dt;
+        if (raid.aoeTimer <= 0) raidStartAoe();
+      }
+      updateRaidBar();
+      if (enemies.indexOf(raid.boss) < 0) { endRaid(true); return; }
+      if (raid.timeLeft <= 0) endRaid(false);
+    }
+    function endRaid(won) {
+      var boss = raid.boss;
+      if (boss) { var idx = enemies.indexOf(boss); if (idx >= 0) enemies.splice(idx, 1); if (boss.mesh) scene.remove(boss.mesh); }
+      if (raidAoeMesh) { scene.remove(raidAoeMesh); raidAoeMesh = null; }
+      raid.active = false; raid.boss = null; raid.aoePending = null;
+      var bar = document.getElementById('raid-bar'); if (bar) bar.classList.add('hidden');
+      if (won) {
+        gameState.raidWins++;
+        addGold(800); gameState.exp += 300;
+        var equips = Object.keys(ITEMS).filter(function (id) { return ITEMS[id].type === 'equip'; });
+        var drop = equips[Math.floor(Math.random() * equips.length)];
+        addItem(drop, 1);
+        var gems = ['hong_ngoc', 'luc_ngoc', 'lam_ngoc', 'tu_ngoc', 'kim_ngoc', 'huyet_ngoc'];
+        var gem = gems[Math.floor(Math.random() * gems.length)];
+        addItem(gem, 1);
+        if (gameState.exp >= gameState.maxExp) levelUp();
+        addDmgLog('🏆 Thắng Raid! +800 vàng, +300 EXP, rơi ' + ITEMS[drop].name + ' + ' + ITEMS[gem].name + '.');
+        showSystemBanner('🏆 HẠ KIM THIỀM VƯƠNG! +800 vàng, +300 EXP, rơi ' + ITEMS[drop].name + ' + ' + ITEMS[gem].name + '!');
+      } else {
+        gameState.raidLosses++;
+        addDmgLog('💀 Raid thất bại (hết giờ / rời trận).');
+        showSystemBanner('Raid thất bại! Kim Thiềm Vương vẫn còn đó — đánh lại nào!');
+      }
+      renderBag(); saveGame(false);
+    }
+    function leaveRaid() { if (!raid.active) return; endRaid(false); }
+    function resolveRaidSkip() {
+      if (!raid.active || !raid.boss) return;
+      var power = gameState.attackPower + petDamage() + allies.filter(function (a) { return !a.down; }).length * 30;
+      var est = power * 60;
+      var bossHp = raid.boss.hp;
+      showSystemBanner(est >= bossHp ? 'Bỏ qua trận: đội đủ mạnh, tự động thắng Raid!' : 'Bỏ qua trận: đội chưa đủ mạnh, Raid thất bại!');
+      endRaid(est >= bossHp);
+    }
+
+    // --- Cuong hoa / Kham ngoc: port equipment.v ---
+    // cost = 100*(lv+1) vang; rate = max(10, 100-lv*10)%; max +10; moi cap +8% chi so goc.
+    // That bai: equipment.v giu nguyen cap (khong rot) — thoa "that bai toi da -1 cap".
+    var SLOT_ORDER = ['weapon', 'armor', 'hat', 'boots', 'ring', 'necklace'];
+    var GEM_IDS = ['hong_ngoc', 'luc_ngoc', 'lam_ngoc', 'tu_ngoc', 'kim_ngoc', 'huyet_ngoc'];
+    function enhanceLevel(slot) { return (gameState.enhanceLevels && gameState.enhanceLevels[slot]) || 0; }
+    function enhanceCost(slot) { return 100 * (enhanceLevel(slot) + 1); }
+    function enhanceRate(slot) { return Math.max(10, 100 - enhanceLevel(slot) * 10); }
+    function enhanceRoll(slot) {
+      var idx = SLOT_ORDER.indexOf(slot);
+      return (gameState.kills * 37 + idx * 13 + enhanceLevel(slot) * 7 + gameState.level * 11 + (gameState.enhanceAttempts || 0) * 29) % 100;
+    }
+    function enhanceSlot(slot) {
+      var id = gameState.equipment[slot];
+      if (!id) { showSystemBanner('Ô ' + SLOT_NAMES[slot] + ' đang trống — hãy trang bị đồ trước!'); return; }
+      var lv = enhanceLevel(slot);
+      if (lv >= 10) { showSystemBanner(ITEMS[id].name + ' đã cường hóa tối đa +10!'); return; }
+      var cost = enhanceCost(slot);
+      if (!spendGold(cost)) return;
+      gameState.enhanceAttempts = (gameState.enhanceAttempts || 0) + 1;
+      var roll = enhanceRoll(slot);
+      if (roll < enhanceRate(slot)) {
+        gameState.enhanceLevels[slot] = lv + 1;
+        recalcStats();
+        showSystemBanner('✨ Cường hóa ' + SLOT_NAMES[slot] + ' lên +' + (lv + 1) + ' thành công! (' + ITEMS[id].name + ', mỗi cấp +8% chỉ số gốc)');
+      } else {
+        showSystemBanner('💥 Cường hóa ' + SLOT_NAMES[slot] + ' thất bại! Giữ nguyên +' + lv + ' (không rớt cấp, theo equipment.v).');
+      }
+      renderEnhance(); renderBag(); saveGame(false);
+    }
+    function socketGem(slot, gemId) {
+      var id = gameState.equipment[slot];
+      if (!id) { showSystemBanner('Ô ' + SLOT_NAMES[slot] + ' đang trống — hãy trang bị đồ trước!'); return; }
+      var gm = ITEMS[gemId];
+      if (!gm || gm.type !== 'gem') { showSystemBanner('Hãy chọn 1 loại ngọc!'); return; }
+      if (countItem(gemId) <= 0) { showSystemBanner('Bạn không có ' + gm.name + ' trong túi! Mua ngọc ở dưới.'); return; }
+      removeItem(gemId, 1);
+      var old = gameState.gemSlots[slot];
+      if (old) addItem(old, 1);
+      gameState.gemSlots[slot] = gemId;
+      recalcStats();
+      showSystemBanner('💎 Đã khảm ' + gm.name + ' vào ' + SLOT_NAMES[slot] + ' (' + ITEMS[id].name + ')' + (old ? ' — ' + ITEMS[old].name + ' cũ đã trả về Túi.' : ''));
+      renderEnhance(); renderBag(); saveGame(false);
+    }
+    function unsocketGem(slot) {
+      var gm = gameState.gemSlots[slot];
+      if (!gm) return;
+      gameState.gemSlots[slot] = null;
+      addItem(gm, 1); recalcStats();
+      showSystemBanner('Đã gỡ ' + ITEMS[gm].name + ' khỏi ' + SLOT_NAMES[slot] + ' về Túi.');
+      renderEnhance(); renderBag(); saveGame(false);
+    }
+    function buyGem(gemId) {
+      var gm = ITEMS[gemId]; if (!gm) return;
+      if (!spendGold(gm.priceGold)) return;
+      addItem(gemId, 1);
+      showSystemBanner('Đã mua ' + gm.name + ' (-' + fmt(gm.priceGold) + ' vàng). Vào ô trang bị để khảm.');
+      renderEnhance(); renderBag(); saveGame(false);
+    }
+    function renderEnhance() {
+      var el = document.getElementById('bag-enhance'); if (!el) return;
+      var t = equipBonus();
+      var h = '<h3 style="font-size:13px;margin:8px 0 4px">⚒️ Cường Hóa &amp; Khảm Ngọc <span style="color:#b4c8c9;font-weight:400">(tối đa +10, mỗi cấp +8% chỉ số gốc; thất bại không rớt cấp)</span></h3>';
+      h += '<div class="text-[12px] mb-2">Cộng thêm từ cường hóa + ngọc: <b class="text-[#ffe082]">+' + t.atk + ' Công, +' + t.hp + ' HP, +' + t.def + ' Thủ, +' + Math.round(t.crit * 100) + '% Bạo</b> (đã áp vào Công/Thủ/HUD).</div>';
+      SLOT_ORDER.forEach(function (slot) {
+        var id = gameState.equipment[slot];
+        var def = id ? ITEMS[id] : null;
+        var lv = enhanceLevel(slot);
+        var gm = gameState.gemSlots[slot];
+        h += '<div class="mvl-row"><div class="t"><b>' + SLOT_NAMES[slot] + ' ' + (def ? '— ' + escHtml(def.name) + ' <span style="color:#ffe082">+' + lv + '</span>' : '(trống)') + '</b><div class="sub">' +
+          (def ? itemStatText(def) + ' • Cấp sau: <b>' + fmt(enhanceCost(slot)) + ' vàng, tỉ lệ ' + enhanceRate(slot) + '%</b>' + (gm ? '<br>💎 Đang khảm: ' + ITEMS[gm].name : '<br>💎 Chưa khảm ngọc') : 'Trang bị đồ vào ô này để cường hóa / khảm ngọc.') +
+          '</div></div><div style="display:flex;flex-direction:column;gap:4px;min-width:132px">' +
+          '<button class="mvl-btn" style="min-height:44px" ' + (def && lv < 10 ? '' : 'disabled') + ' onclick="enhanceSlot(\'' + slot + '\')">⚒️ Cường hóa (' + (def ? fmt(enhanceCost(slot)) + ' vàng' : '—') + ')</button>' +
+          (gm ? '<button class="mvl-btn" style="min-height:44px" onclick="unsocketGem(\'' + slot + '\')">💎 Gỡ ' + escHtml(ITEMS[gm].name) + '</button>' : '') +
+          '</div></div>';
+      });
+      h += '<h3 style="font-size:13px;margin:8px 0 4px">💎 Khảm ngọc (6 loại, theo equipment.v)</h3><div class="mvl-row"><div class="t"><div class="sub">Chọn ô trang bị rồi chọn ngọc trong túi để khảm. Ngọc cũ trả về Túi.</div></div><div style="display:flex;gap:4px;flex-wrap:wrap">' +
+        '<select id="gem-slot-sel" class="mvl-input" style="width:130px">' + SLOT_ORDER.map(function (s) { return '<option value="' + s + '">' + SLOT_NAMES[s] + '</option>'; }).join('') + '</select>' +
+        '<select id="gem-id-sel" class="mvl-input" style="width:150px">' + GEM_IDS.map(function (g) { return '<option value="' + g + '">' + ITEMS[g].name + ' (x' + countItem(g) + ')</option>'; }).join('') + '</select>' +
+        '<button class="mvl-btn green" onclick="socketGem(document.getElementById(\'gem-slot-sel\').value, document.getElementById(\'gem-id-sel\').value)">Khảm ngọc</button></div></div>';
+      h += '<h3 style="font-size:13px;margin:8px 0 4px">🛒 Mua ngọc (vàng)</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
+      GEM_IDS.forEach(function (g) {
+        h += '<button class="mvl-btn" style="min-height:44px" onclick="buyGem(\'' + g + '\')">' + ITEMS[g].icon + ' ' + ITEMS[g].name + ' — ' + fmt(ITEMS[g].priceGold) + ' vàng (có x' + countItem(g) + ')</button>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    }
+    // Boc equip/unequip goc: theo equipment.v, do moi vao slot reset cuong hoa ve +0;
+    // thao do reset +0 va go ngoc (ban HTML tra ngoc ve Tui thay vi lam mat ngoc nhu V).
+    var _g1EquipItemOrig = equipItem;
+    equipItem = function (id) {
+      var def = ITEMS[id]; if (!def || def.type !== 'equip') return _g1EquipItemOrig(id);
+      var r = _g1EquipItemOrig(id);
+      if (gameState.equipment[def.slot] === id) { gameState.enhanceLevels[def.slot] = 0; recalcStats(); renderEnhance(); }
+      return r;
+    };
+    var _g1UnequipItemOrig = unequipItem;
+    unequipItem = function (slot) {
+      var gm = gameState.gemSlots && gameState.gemSlots[slot];
+      _g1UnequipItemOrig(slot);
+      if (gameState.equipment[slot] == null) {
+        gameState.enhanceLevels[slot] = 0;
+        if (gm) { gameState.gemSlots[slot] = null; addItem(gm, 1); }
+        recalcStats(); renderEnhance();
+      }
+    };
+
+    // --- PvP: dau mo phong theo luot + thuong ngay + boss the gioi (pvp.v) ---
+    function renderPvp() {
+      var body = document.getElementById('pvp-body'); if (!body) return;
+      var rank = pvpRankFromPoints(gameState.pvpPoints);
+      var power = pvpPower();
+      var now = new Date(); var hour = now.getHours();
+      var wbOpen = worldBossIsOpen(hour);
+      var dailyClaimed = gameState.pvpDailyDate === todayStr();
+      var h = '<p class="text-[12px] mb-2">Lực chiến của bạn: <b class="text-[#ffe082]">' + fmt(power) + '</b> (Công + cấp x5 + trang bị + pet + môn phái, theo pvp.v). Thắng <b>+25</b> điểm, thua <b>-15</b> điểm (không dưới 0).</p>';
+      h += '<div class="mvl-row"><div class="t"><b>🏆 Hạng của bạn: #' + rank + '</b><div class="sub">' + fmt(gameState.pvpPoints) + ' điểm PvP • Thắng ' + gameState.pvpWins + ' • Thua ' + gameState.pvpLosses + ' • Raid thắng ' + gameState.raidWins + '</div></div>' +
+        '<button class="mvl-btn green" ' + (dailyClaimed ? 'disabled' : '') + ' onclick="claimPvpDaily()">' + (dailyClaimed ? 'Đã nhận hôm nay' : '🎁 Nhận thưởng ngày') + '</button></div>';
+      h += '<p class="text-[11px] text-[#b4c8c9]">Thưởng ngày: +150 vàng, +300 bạc, +50 EXP — nhận 1 lần/ngày.</p>';
+      h += '<h3 style="font-size:13px;margin:8px 0 4px">👹 Boss Thế Giới — ' + WORLD_BOSS.name + '</h3>' +
+        '<div class="mvl-row"><div class="t"><b>HP ' + fmt(WORLD_BOSS.maxHp) + '</b><div class="sub">Mở cửa <b>20:00–21:00</b> hằng ngày (giờ máy: ' + hour + ':' + String(now.getMinutes()).padStart(2, '0') + ') — ' + (wbOpen ? '<b style="color:#51cf66">ĐANG MỞ</b>' : '<b style="color:#ff8787">Đang đóng</b>') + '<br>Thưởng theo sát thương: ≥20000 → 5000 vàng + 5 Đá Cường Hóa; ≥10000 → 2500 vàng; ≥2000 → 1000 vàng.</div></div>' +
+        '<button class="mvl-btn" ' + (wbOpen ? '' : 'disabled') + ' onclick="worldBossAttack()">⚔️ Đánh Boss</button></div>';
+      h += '<h3 style="font-size:13px;margin:8px 0 4px">⚔️ Đối thủ đấu trường (8 người, theo pvp.v)</h3>';
+      PVP_OPPONENTS.forEach(function (opp, i) {
+        h += '<div class="mvl-row"><div class="t"><b>#' + opp.rank + ' ' + opp.name + '</b><div class="sub">' + opp.title + ' • Lực chiến ' + fmt(opp.power) + ' • ' + (power >= opp.power ? '<b style="color:#51cf66">Bạn mạnh hơn</b>' : '<b style="color:#ff8787">Đối thủ mạnh hơn</b>') + '</div></div>' +
+          '<button class="mvl-btn" onclick="pvpFight(' + i + ')">Đấu</button></div>';
+      });
+      h += '<div id="pvp-result" class="text-[12px] mt-2" style="white-space:pre-wrap"></div>';
+      body.innerHTML = h;
+    }
+    function claimPvpDaily() {
+      if (gameState.pvpDailyDate === todayStr()) { showSystemBanner('Hôm nay đã nhận thưởng PvP rồi!'); return; }
+      gameState.pvpDailyDate = todayStr();
+      addGold(150); addSilver(300); gameState.exp += 50;
+      if (gameState.exp >= gameState.maxExp) levelUp();
+      showSystemBanner('🎁 Thưởng ngày PvP: +150 vàng, +300 bạc, +50 EXP!');
+      renderPvp(); saveGame(false);
+    }
+    function worldBossAttack() {
+      var hour = new Date().getHours();
+      if (!worldBossIsOpen(hour)) { showSystemBanner('Boss Thế Giới chỉ mở 20:00–21:00!'); return; }
+      var damage = Math.round(pvpPower() * 12 + Math.random() * 500);
+      var reward = worldBossReward(damage);
+      if (reward > 0) {
+        addGold(reward);
+        if (damage >= 20000) addItem('da_cuong_hoa', 5);
+        showSystemBanner('👹 Boss Thế Giới: bạn gây ' + fmt(damage) + ' sát thương, +' + fmt(reward) + ' vàng!' + (damage >= 20000 ? ' +5 Đá Cường Hóa!' : ''));
+      } else { showSystemBanner('👹 Boss Thế Giới: bạn gây ' + fmt(damage) + ' sát thương — chưa đủ 2000 để nhận thưởng!'); }
+      addDmgLog('👹 Boss Thế Giới: gây ' + fmt(damage) + ' sát thương, +' + fmt(reward) + ' vàng.');
+      renderPvp(); saveGame(false);
+    }
+    function pvpFight(idx) {
+      var opp = PVP_OPPONENTS[idx]; if (!opp) return;
+      var power = pvpPower();
+      var php = power * 10, ohp = opp.power * 10;
+      var log = ['⚔️ Đấu với ' + opp.name + ' (lực chiến ' + opp.power + ', hạng #' + opp.rank + ') — bạn ' + power + '.'];
+      var round = 0;
+      while (php > 0 && ohp > 0 && round < 30) {
+        round++;
+        var pd = Math.round(power * (0.9 + Math.random() * 0.25));
+        var od = Math.round(opp.power * (0.9 + Math.random() * 0.25));
+        ohp -= pd; php -= od;
+        log.push('Hiệp ' + round + ': bạn -' + pd + ' → đối thủ còn ' + Math.max(0, ohp) + ' HP; đối thủ -' + od + ' → bạn còn ' + Math.max(0, php) + ' HP.');
+      }
+      var win = ohp <= 0 && php > 0;
+      if (win) { gameState.pvpPoints += 25; gameState.pvpWins++; }
+      else { gameState.pvpPoints = Math.max(0, gameState.pvpPoints - 15); gameState.pvpLosses++; }
+      var rank = pvpRankFromPoints(gameState.pvpPoints);
+      log.push((win ? '🏆 THẮNG! +25 điểm PvP.' : '💔 THUA! -15 điểm PvP.') + ' Điểm hiện tại: ' + gameState.pvpPoints + ' (hạng #' + rank + ').');
+      log.forEach(function (l) { addDmgLog(l); });
+      showSystemBanner(win ? '🏆 Thắng ' + opp.name + '! +25 điểm PvP (hạng #' + rank + ').' : '💔 Thua ' + opp.name + '. -15 điểm PvP (hạng #' + rank + ').');
+      renderPvp(); saveGame(false);
+      var res2 = document.getElementById('pvp-result'); if (res2) res2.textContent = log.join('\n');
+    }
+
+    // --- Vong lap chinh cua nhom 1 (100ms): combo, dong doi, auto, raid ---
+    var _g1TickCount = 0;
+    function masterTick() {
+      if (gameState.battlePaused) return;
+      _g1TickCount++;
+      var dt = 0.1;
+      if (gameState.comboTimer > 0) { gameState.comboTimer -= dt; if (gameState.comboTimer <= 0 && gameState.combo !== 0) { gameState.combo = 0; updateComboUI(); } }
+      alliesTick(dt);
+      raidTick(dt);
+      if (_g1TickCount % 6 === 0) autoBattleTick();
+    }
+    function initG1() {
+      buildAllies();
+      updateComboUI();
+      setInterval(masterTick, 100);
+    }
+
     window.onload = function () {
       createTownNPCs();
       createPetMesh();
@@ -3052,6 +3734,9 @@
       showSystemBanner(hadSave ? 'Chào Mừng Đạo Hữu Trở Lại Quỷ Cốc Bát Hoang 3D! (đã tải save cũ)' : 'Chào Mừng Đạo Hữu Đến Với Quỷ Cốc Bát Hoang 3D!');
       animate();
     };
+    // NHOM 1: khoi dong he thong moi sau khi game load xong (khong sua window.onload goc).
+    var _g1OrigOnload = window.onload;
+    window.onload = function () { _g1OrigOnload(); initG1(); };
   </script>
 </body>
 </html>

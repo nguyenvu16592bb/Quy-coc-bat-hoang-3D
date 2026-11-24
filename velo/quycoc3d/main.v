@@ -45,6 +45,11 @@ fn main() {
 	game.registry.register[WorldMapUI]()
 	game.registry.register[HeroMember]()
 	game.registry.register[CompanionAI]()
+	game.registry.register[BattleDirector]()
+	game.registry.register[BattleCompanionAI]()
+	game.registry.register[BattlePanelUI]()
+	game.registry.register[PvpPanelUI]()
+	game.registry.register[TownPanelUI]()
 
 	init_state()
 	game.run()
