@@ -58,6 +58,33 @@ mut:
 	// ---- UI panels ----
 	show_map  bool
 	show_team bool
+	// ---- môn phái / kinh tế / trang bị / pet / bang / nhiệm vụ / PvP ----
+	// (sects.v, economy.v, equipment.v, pets.v, guild.v, quests.v, pvp.v, save.v)
+	sect_id             int = -1 // -1 = chưa nhập phái
+	def                 int
+	gold                int = 500
+	silver              int = 2000
+	inventory           []int
+	equip_slots         [6]int = [-1, -1, -1, -1, -1, -1]!
+	equip_level         [6]int
+	gem_slots           [6]int = [-1, -1, -1, -1, -1, -1]!
+	pet_id              int = -1 // -1 = chưa có thần thú theo cùng
+	pet_level           int = 1
+	pet_evo             int
+	guild_id            int = -1 // -1 = chưa vào bang, 99 = bang tự lập
+	guild_name          string
+	guild_contrib       int
+	guild_total_contrib int
+	guild_log           []string
+	quest_current       int
+	quest_progress      [20]int
+	quest_done          [20]bool
+	daily_count         [7]int
+	pvp_rank            int = 1000
+	pvp_points          int
+	pvp_wins            int
+	pvp_losses          int
+	world_boss_dmg      int
 }
 
 const g = &GState{}
@@ -122,6 +149,13 @@ fn publish() {
 	st.set_int('exp', s.exp)
 	st.set_int('max_exp', s.max_exp)
 	st.set_int('kills', s.kills)
+	st.set_int('gold', s.gold)
+	st.set_int('silver', s.silver)
+	st.set_int('stones', s.stones)
+	st.set_int('sect_id', s.sect_id)
+	st.set_int('pet_id', s.pet_id)
+	st.set_int('pvp_points', s.pvp_points)
+	st.set_int('pvp_rank', s.pvp_rank)
 }
 
 // show_banner: the center-top system message (fades via HUDSync).
