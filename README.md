@@ -1,107 +1,86 @@
-# Quy-coc-bat-hoang-3D
+# Mộng Võ Lâm 3D — Quỷ Cốc Bát Hoàng (Bản Three.js + PixiJS)
 
-Repo game **Quỷ Cốc Bát Hoang 3D** — Wuxia isometric action RPG.
+Game 3D wuxia MMORPG-lite chạy **100% cục bộ trong trình duyệt**, cảm hứng từ
+**Mộng Võ Lâm (Soha Game)** — phiên bản mới viết bằng **Three.js r147 + PixiJS 6**,
+chia module **HTML / CSS / JS dạng namespace IIFE (KHÔNG ES module)**.
 
-- `velo/web/qu_c_c_b_t_hoang_3d.html` — thiết kế gốc (prototype Three.js chạy trong
-  browser): nhân vật, 7 kỹ năng, HUD wuxia, cảnh giới, phó bản. **Mở bằng trình duyệt
-  (kể cả trình duyệt điện thoại)** — xem [velo/web/README.md](velo/web/README.md).
-  ⚠️ File HTML gốc từng nằm ở thư mục gốc repo, nay đã chuyển vào `velo/web/`.
-- `velo/quycoc3d/` — **game 3D chính thức xây bằng Velo Engine (branch 3d)**, dịch toàn bộ
-  thiết kế trên sang engine: arena đảo núi nổi, nhân vật FBX thần điệu mang đại kiếm,
-  7 tuyệt kỹ với VFX, 4 loại quái + Ma Tôn, camera isometric orbit/zoom, HUD đầy đủ
-  (minimap, nhiệm vụ, phó bản, thanh kỹ năng, số sát thương nổi, banner).
+## 🚀 Cách chạy
 
-## Bản mở rộng Mộng Võ Lâm (Soha)
+**Cách nhanh nhất (Windows):** nhấp đúp `Chay-game.bat` — tự mở `http://localhost:8080`.
 
-Game đã được mở rộng theo phong cách **Mộng Võ Lâm**: 8 môn phái, kinh tế vàng/bạc/chợ,
-trang bị 6 slot + cường hóa + khảm ngọc, túi đồ, pet/thần thú, bang hội, 20 nhiệm vụ chính,
-7 hoạt động hằng ngày, sự kiện theo giờ, PvP đấu trường giả lập, thị trấn an toàn,
-lưu game. Chi tiết đầy đủ + số liệu thật + giới hạn chưa làm được:
-xem **[docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md)**.
-
-**Battle vòng 2** (xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 3.12–3.15):
-formation 5 người (3 hàng tank/dps/healer), auto-battle (tự dùng skill khi đủ MP,
-tự uống đan khi HP < 25%), raid boss Cóc Xanh 3 phase (đổi phase ở 66%/33% HP,
-gọi 3 quái con mỗi lần đổi phase, AoE có cảnh báo 1,2s), combo (cửa sổ 3s) / nộ
-(Nộ Trảm tay + Bạo Linh Phù +35% crit trong 12 giây) + damage log 50 dòng,
-tốc độ x1/x2, tạm dừng/bỏ qua, cường hóa tối đa +10 (thất bại tối đa −1 cấp) +
-6 loại ngọc, PvP 8 đối thủ (+25/−15, floor 0) + thưởng ngày, thị trấn Song Ma
-(vào tắt spawn, ra bật lại), 4 panel mới (Battle/Town/Enhance/PvP).
-Chuẩn số liệu vòng 2 đã chốt: pet 6, bang 4, sự kiện 5, chợ 12 món, trang bị 13 món,
-vàng khởi đầu 455 / bạc khởi đầu 40932 — **đã khớp cả hai bản**
-(6 lệch battle vòng 2 đã khớp: đội hình `{0,1,2,5,7}`, ngưỡng uống đan 25%,
-quái con raid [3,3], combo 3s, log 50 dòng, roll cường hóa có `attempts×29` cả hai bản;
-thưởng ngày PvP + tốc độ/tạm dừng/bỏ qua phía V cũng đã có).
-**Chuẩn chung vòng 3** (docs mục 3.17.2): nộ khí = Nộ Trảm tay
-(dmg = công×4 + combo×10, AoE 6m), AoE raid = 90 dmg (cả hero + đồng đội),
-boss thế giới +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa, boss raid
-Kim Thiềm Vương 20000 HP / 120s / 3 phase — **đã hạ cánh cả hai bản**
-(harness battle mục L: 0 FAIL, chỉ còn 1 MISSING theo thiết kế).
-
-**Module vòng 3** (xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 3.16–3.17):
-HTML gốc 3741 dòng đã tách thành shell `velo/web/qu_c_c_b_t_hoang_3d.html`
-(**358 dòng**, body 334 dòng — không phải ~120 dòng như ước lượng ban đầu) +
-`velo/web/quycoc.css` (191 dòng) + `velo/web/js/00-state.js` (208) /
-`01-world.js` (755) / `02-combat.js` (576) / `03-battle.js` (420) /
-`04-mvl.js` (733) / `05-ui.js` (570) — tổng **3811 dòng**, script thường
-(không ES module), namespace chung `window.QC`. Nhóm 2 đang hạ cánh
-`velo/web/js/06-expand.js` (tọa kỵ 6, thời trang 8, VIP 6 cấp, bang chiến 19–20h,
-môn phái chiến, thư/chat, xếp hạng 20 NPC, đổi đội trưởng F1/F2/F3) — shell đã nạp
-06 và thêm 5 panel mới (tổng 13 panel); file V mới `mounts.v`/`fashion.v`/
-`guildwar.v`/`vip.v` chưa có.
-
-Kiểm thử: `node tests/test-mongvolam.js` (vòng 1) , `node tests/test-battle-mvl.js`
-(vòng 2) và `node tests/test-modules-mvl.js` (vòng 3, module mới) — xem mục Kiểm thử
-bên dưới và mục 6 trong docs trên.
-
-## Chạy game
-
-**Bản HTML (chơi ngay trên điện thoại / trình duyệt):** mở
-`velo/web/qu_c_c_b_t_hoang_3d.html` qua server tĩnh hoặc GitHub Pages
-(không mở bằng `file://` — trình duyệt chặn tải asset).
-
-**Bản V (Windows, cần build):** build bằng V toolchain rồi chạy exe — xem
-[velo/quycoc3d/README.md](velo/quycoc3d/README.md).
-⚠️ **File `.exe` KHÔNG có trong repo** (thư mục `velo/quycoc3d/build/` chỉ chứa
-`assets/` trùng lặp, không có exe) — muốn chơi bản V phải build lại từ source
-bằng `build_game.ps1` trên máy Windows có toolchain V. **Exe cũng chưa build được
-ở đây** (VM này không có toolchain V/Windows) — chỉ kiểm tra file V bằng regex
-+ đếm qua harness, không qua compiler V.
-
-Hướng dẫn phím + build lại: xem [velo/quycoc3d/README.md](velo/quycoc3d/README.md).
-
-## Kiểm thử
-
+**Cách khác:**
 ```bash
-node tests/test-mongvolam.js    # vòng 1 (môn phái, kinh tế, pet, bang, nhiệm vụ, PvP, lưu game)
-node tests/test-battle-mvl.js   # vòng 2 (formation 5, auto-battle, raid boss 3 phase,
-                                # combo/nộ, damage log, tốc độ/tạm dừng/bỏ qua,
-                                # enhance/gem, PvP UI, town safe, panel mới,
-                                # chuẩn chung vòng 3)
-node tests/test-modules-mvl.js  # vòng 3 (cấu trúc module shell + css + js/00–06,
-                                # không trùng tên hàm, state/data khớp,
-                                # hệ thống mới nhóm 2, hồi quy battle cũ)
-node --check velo/web/js/00-state.js velo/web/js/01-world.js velo/web/js/02-combat.js \
-  velo/web/js/03-battle.js velo/web/js/04-mvl.js velo/web/js/05-ui.js velo/web/js/06-expand.js
+python -m http.server 8080        # hoặc: npx serve .
+# rồi mở http://localhost:8080/index.html
 ```
 
-Cả ba harness đều chạy bằng `node` thuần, không cần thư viện ngoài; exit 0 = không có FAIL
-(MISSING được phép — hệ thống chưa có trong code thì báo MISSING chứ không
-fail cứng). Kết quả lần chạy cuối vòng 3 (2026-11-25, sau khi cập nhật docs):
-vòng 1 **90 PASS / 0 FAIL / 0 MISSING**; vòng 2 **255 PASS / 0 FAIL / 1 MISSING**;
-vòng 3 (module) **113 PASS / 0 FAIL / 0 MISSING**; `node --check` 00–06 OK.
-Smoke server: `cd velo/web && python3 -m http.server 8123` rồi curl shell + css +
-từng module — đều trả 200.
-Chi tiết từng assert + số đo thật: xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 6.
+> ⚠️ Phải chạy qua HTTP server (không mở file:// trực tiếp) vì trình duyệt chặn
+> tải model GLB từ file local. Model GLB của bạn nằm sẵn trong `assets/models/`.
 
-## Mở panel mới (battle vòng 2 + hệ thống mới vòng 3)
+## 📂 Cấu trúc
 
-- **Bản HTML:** 13 panel mở bằng thanh dưới — 8 panel gốc (Túi / Môn Phái / Hoạt Động /
-  Sự Kiện / Chợ / Bang Hội / Đội Hình / Đ. Trường) + 5 panel mới vòng 3
-  (Tọa Kỵ / Bang Chiến / VIP / Thư / Xếp Hạng) + nút **🏯 Thị Trấn** vào khu an toàn
-  (3 NPC: Trưởng Môn, Chủ Sạp, Thợ Rèn). Battle UI là **thanh battle bar** trên màn
-  hình (🤖 Tự đánh / ⏸ Tạm dừng / ⏭ Bỏ qua / ⚡ Tốc độ x1/x2 / Combo / Nộ Trảm /
-  damage log / thanh HP raid boss), không có `panel-battle` riêng.
-- **Bản V:** panel nằm trong `velo/quycoc3d/assets/scenes/main.scene` (node
-  `BattlePanel` / `TownPanel` / `EnhancePanel` / `PvpPanel`, nối qua `hud.v` /
-  `BattlePanelUI` / `TownPanelUI`); 4 node này đã có trong scene (835 dòng, 145 node).
+```
+index.html              — khung DOM + thứ tự nạp script
+css/style.css           — giao diện wuxia "mực tàu ánh vàng đồng"
+js/core/                — Engine, Assets, Input, Camera, Audio (tổng hợp WebAudio), Save, Utils
+js/data/Data.js         — toàn bộ dữ liệu: 4 môn phái, 18 kỹ năng, ~30 vật phẩm,
+                          10 quái, 5 boss, 5 bản đồ, 7 NPC, 19 nhiệm vụ, 12 thành tựu
+js/world/World.js       — địa hình procedural, bầu trời, ngày/đêm, thời tiết, cổng
+js/entities/Entities.js — Player, Monster AI, Boss (phase + telegraph), NPC, Pet, Ngựa, Loot
+js/systems/             — Combat, Effects (VFX), Progression, Inventory, Quests,
+                          Achievements, Chat
+js/ui/                  — HUD (thanh máu/kỹ năng/minimap PixiJS), FX2D số sát thương,
+                          mọi màn hình (login, tạo nhân vật, túi đồ, chợ, bản đồ...)
+js/lib/                 — Three.js r147 + GLTFLoader + Draco + SkeletonUtils +
+                          post-processing (UnrealBloom) + PixiJS 6 (UMD)
+assets/models/          — GLB: 2 hero + pet (bạn cung cấp), 10 quái + 5 boss (CC mẫu)
+CONTRACT.md             — hợp đồng API giữa các module
+tests/test-mvl3d.js     — kiểm thử tích hợp dữ liệu (node tests/test-mvl3d.js)
+tools/watch-test.ps1    — tự kiểm thử lại mỗi khi code thay đổi (kèm monitor)
+```
+
+## ⚔️ Tính năng chính
+
+- **4 môn phái** (Thiếu Lâm / Võ Đang / Đường Môn / Nga My) × 4 tuyệt kỹ riêng + Thân Pháp + đánh thường chuỗi 3 đòn
+- **5 bản đồ** có khí quyển riêng: Mộng Hoành Sơn (trấn an toàn) → Vạn Trúc Lâm (trúc hoàng hôn) → Hắc Phong Cốc (mưa đêm) → Tuyết Lĩnh (tuyết rơi) → Long Môn Mật Cảnh (núi lửa)
+- **10 loài quái** AI tuần tra/nhìn thấy là đuổi/đánh/bỏ chạy/hồi về gốc; **quái tinh anh** ✦ vàng
+- **5 Ma Đầu**: Vong Giáp Đại Tướng, Huyễn Vũ Ma Nữ, Cơ Quan Thánh Thủ, Hắc Long Vương, **Cửu Vĩ Huyết Hồ** (boss cuối) — hệ phase, triệu linh binh, **vòng đỏ báo trước AOE**, cuồng hóa dưới 10% máu
+- **Kinh tế 2 loại tiền**: Bạc (quái rơi, chợ) + Vàng (nhiệm vụ/boss, cường hóa, hồi sinh)
+- **Túi đồ 48 ô, 7 slot trang bị**, hiếm 6 bậc + phụ thuộc ngẫu nhiên, **cường hóa +N** (tỉ lệ giảm dần), hộp quà theo phái
+- **19 nhiệm vụ chuỗi** (giết / thu thập / gặp / đến nơi / boss) + thành tựu 12 huy hiệu
+- **Thánh thú Coco** (model của bạn) theo chủ, tự nhặt đồ, hỗ trợ cắn quái
+- **Cưỡi Hắc Tuấn Mã** sau khi thu phục (phím Z), tốc độ ×2
+- Chu kỳ **ngày/đêm**, thời tiết mưa/tuyết/tro, **âm nhạc ngũ cung procedural** theo từng vùng + ~20 SFX tổng hợp WebAudio
+- **Minimap PixiJS** xoay theo camera, số sát thương bay (PixiJS overlay), chat giang hồ giả lập, tự lưu localStorage + xuất/nhập mã lưu
+- **Chất lượng 3 mức** (Thấp/TB/Cao) — pixel ratio, bóng đổ, bloom
+- **Hỗ trợ cảm ứng**: joystick ảo + nút hành động
+- **Tự kiểm thử**: mở `index.html?autotest=1` chạy kịch bản toàn trình tự; `node tests/test-mvl3d.js` kiểm dữ liệu; watcher đổi file là chạy lại
+
+## 🎮 Điều khiển
+
+| Phím | Hành động |
+|---|---|
+| WASD / mũi tên | Di chuyển · **Shift** chạy nhanh · **Space** nhảy |
+| Chuột trái | Đánh thường (giữ để liên hoàn) · kéo xoay camera · lăn thu phóng |
+| 1–4 / Q / R | Tuyệt kỹ / Thân Pháp / đan dược |
+| E / Tab / Z | Tương tác / chọn mục tiêu / cưỡi ngựa |
+| I C K J M H | Túi · Nhân vật · Kỹ năng · Nhiệm vụ · Bản đồ · Hướng dẫn |
+| Esc | Đóng bảng / Cài đặt |
+
+## 🏅 Ghi nguồn model
+
+- Hero `tamphong.glb`, `lenhhosung.glb`, pet `coco.glb`: do người dùng cung cấp (Tripo AI)
+- Quái/boss: Fox, CesiumMan, RiggedFigure, Monster-like, BrainStem, DamagedHelmet —
+  [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets) (Apache-2.0/CC);
+  Horse, Parrot, Flamingo, Stork, Xbot, Soldier, RobotExpressive, Michelle, Dragon —
+  [three.js examples](https://github.com/mrdoob/three.js/tree/dev/examples/models) (MIT)
+
+## 🧩 Kiến trúc kỹ thuật
+
+- **Không ES module, không build step** — mọi file là IIFE gắn namespace `window.MVL`,
+  nạp bằng thẻ `<script>` theo thứ tự phụ thuộc (xem `index.html`).
+- Three.js r147 (UMD) cho 3D: renderer sRGB + ACES tone mapping + UnrealBloomPass.
+- PixiJS 6 (UMD) cho lớp 2D: minimap + số sát thương bay + hiệu ứng UI.
+- Model GLB tự chuẩn hóa: clone an toàn qua SkeletonUtils, cân theo chiều cao, chân chạm đất.
+- Không gọi mạng ngoài sau khi đã tải tài sản; chạy được hoàn toàn offline qua LAN/local.
+- Bản cũ (Velo engine, FBX) vẫn còn nguyên tại `velo/` — không ảnh hưởng bản này.

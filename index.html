@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Mộng Võ Lâm 3D — Quỷ Cốc Bát Hoàng</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚔️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=5">
+</head>
+<body>
+
+<!-- === CANVAS LỚP 3D + LỚP 2D (PixiJS overlay) === -->
+<canvas id="game-canvas"></canvas>
+<canvas id="fx2d-canvas"></canvas>
+<div id="fade-layer"></div>
+<div id="hurt-fx"></div>
+
+<!-- ===================== HUD TRONG GAME ===================== -->
+<div id="hud" class="hidden">
+
+  <div id="top-left">
+    <div id="player-plate">
+      <div id="level-badge">1</div>
+      <div class="pp-bars">
+        <div class="pp-names"><span id="player-name">Vô Danh</span><span id="class-badge">Võ Đang</span></div>
+        <div class="bar hp"><div id="hp-fill"></div><span id="hp-text">100/100</span></div>
+        <div class="bar mp"><div id="mp-fill"></div><span id="mp-text">50/50</span></div>
+      </div>
+    </div>
+    <div id="buff-row"></div>
+  </div>
+
+  <div id="target-frame" class="hidden">
+    <div class="tf-head"><span id="target-name">???</span><span id="target-level">Lv.1</span></div>
+    <div class="bar thp"><div id="target-hp-fill"></div><span id="target-hp-text"></span></div>
+  </div>
+
+  <div id="boss-bar" class="hidden">
+    <div id="boss-name">MA TÔN</div>
+    <div class="bar bhp"><div id="boss-fill"></div></div>
+    <div id="boss-phase"></div>
+  </div>
+
+  <div id="cast-bar" class="hidden"><div id="cast-fill"></div><span id="cast-label">Đọc chú...</span></div>
+
+  <div id="top-right">
+    <div id="gold-box">🪙 <span id="gold-text">0</span><span class="sep">|</span>🥈 <span id="silver-text">0</span></div>
+    <div id="clock-badge">☀️ 08:00</div>
+    <div id="fps-badge">-- FPS</div>
+    <div id="menu-buttons">
+      <button class="mbtn" data-panel="inventory"  title="Túi đồ (I)">🎒</button>
+      <button class="mbtn" data-panel="character"  title="Nhân vật (C)">🧝</button>
+      <button class="mbtn" data-panel="skills"     title="Kỹ năng (K)">📜</button>
+      <button class="mbtn" data-panel="quests"     title="Nhiệm vụ (J)">📖</button>
+      <button class="mbtn" data-panel="map"        title="Bản đồ (M)">🗺️</button>
+      <button class="mbtn" data-panel="help"       title="Hướng dẫn (H)">❓</button>
+      <button class="mbtn" data-panel="settings"   title="Cài đặt (Esc)">⚙️</button>
+    </div>
+  </div>
+
+  <div id="minimap-wrap">
+    <canvas id="minimap-canvas" width="184" height="184"></canvas>
+    <div id="minimap-compass">N</div>
+    <div id="minimap-zone">Mộng Hoành Sơn</div>
+  </div>
+
+  <div id="quest-tracker"><h4>📜 Nhiệm vụ</h4><ul id="tracker-list"></ul></div>
+
+  <div id="system-log"><ul id="log-list"></ul></div>
+
+  <div id="interact-hint" class="hidden">⌨️ <b>E</b> — <span id="interact-label"></span></div>
+
+  <div id="xp-bar"><div id="xp-fill"></div><span id="xp-text">0%</span></div>
+
+  <div id="skill-bar"></div>
+
+  <div id="chat-box">
+    <ul id="chat-list"></ul>
+    <div id="chat-row">
+      <input id="chat-input" maxlength="80" placeholder="Nhập tin nhắn giang hồ...">
+      <button id="chat-send">Gửi</button>
+    </div>
+  </div>
+
+  <div id="joystick-zone"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
+  <div id="touch-actions">
+    <button class="tbtn" data-act="mount">🐎</button>
+    <button class="tbtn" data-act="interact">✋</button>
+    <button class="tbtn" data-act="dash">💨</button>
+    <button class="tbtn" data-act="potion">🧪</button>
+    <button class="tbtn" data-act="target">🎯</button>
+    <button class="tbtn big" data-act="attack">⚔️</button>
+  </div>
+</div>
+
+<!-- ===================== CÁC MÀN HÌNH ===================== -->
+<div id="screen-login" class="screen">
+  <div class="petal p1"></div><div class="petal p2"></div><div class="petal p3"></div>
+  <div class="petal p4"></div><div class="petal p5"></div><div class="petal p6"></div>
+  <h1 class="game-title">MỘNG VÕ LÂM <span class="g3d">3D</span></h1>
+  <p class="game-sub">Quỷ Cốc Bát Hoàng · Phong cách Soha Game · Three.js + PixiJS</p>
+  <div class="login-buttons">
+    <button id="btn-new" class="btn-gold">⚔️ Bắt Đầu Hành Trình</button>
+    <button id="btn-continue" class="btn">🗡️ Tiếp Tục (Có Lưu)</button>
+    <button id="btn-help-login" class="btn-ghost">📖 Hướng Dẫn</button>
+  </div>
+  <p class="login-note">Chạy cục bộ 100% — không cần cài đặt, không cần mạng sau khi tải model</p>
+  <div id="login-load-badge"></div>
+</div>
+
+<div id="screen-create" class="screen hidden">
+  <h2>✨ Tạo Nhân Vật</h2>
+  <p class="create-tip">Chọn môn phái — mỗi phái 4 tuyệt kỹ riêng</p>
+  <div id="class-cards"></div>
+  <p class="create-tip">Chọn thân pháp hiển thị</p>
+  <div id="hero-cards"></div>
+  <input id="input-name" maxlength="16" placeholder="Để lại tên trong giang hồ...">
+  <div class="create-btns">
+    <button id="btn-back-login" class="btn-ghost">↩ Quay lại</button>
+    <button id="btn-enter-world" class="btn-gold">🏮 Nhập Giang Hồ</button>
+  </div>
+</div>
+
+<div id="screen-loading" class="screen hidden">
+  <h2 id="load-label">Đang khai mở võ lâm...</h2>
+  <div class="load-track"><div id="load-bar-fill"></div></div>
+  <p id="load-tip">Mẹo: giữ chuột trái để xoay camera, lăn chuột để thu phóng.</p>
+</div>
+
+<div id="screen-death" class="screen hidden">
+  <h2>🥀 Ngã Xuống</h2>
+  <p>Bậc tiền bối nói: "Chưa chết thì chưa phải thất bại."</p>
+  <button id="btn-revive-town" class="btn-gold">🏮 Hồi Sinh Ở Trấn (Miễn phí)</button>
+  <button id="btn-revive-here" class="btn">💥 Hồi Sinh Tại Chỗ — <span id="death-cost">500</span> vàng</button>
+</div>
+
+<div id="screen-map" class="screen hidden">
+  <h2>🗺️ Bản Đồ Võ Lâm</h2>
+  <canvas id="worldmap-canvas" width="900" height="500"></canvas>
+  <p class="map-tip">Nhấp vào vùng đã khám phá để dịch chuyển · Phong Vân Tử mở khóa bản đồ</p>
+  <button id="map-close" class="btn-ghost">Đóng (M)</button>
+</div>
+
+<!-- ===================== PANEL UI ===================== -->
+<div id="panel-inventory" class="panel hidden">
+  <div class="panel-head"><h3>🎒 Túi Đồ</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body">
+    <div id="equip-slots"></div>
+    <div id="inv-stats"></div>
+    <div id="inv-grid"></div>
+    <div id="inv-gold"></div>
+  </div>
+</div>
+
+<div id="panel-character" class="panel hidden">
+  <div class="panel-head"><h3>🧝 Nhân Vật</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body" id="char-stats"></div>
+</div>
+
+<div id="panel-skills" class="panel hidden">
+  <div class="panel-head"><h3>📜 Tuyệt Kỹ</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body" id="skill-cards"></div>
+</div>
+
+<div id="panel-quests" class="panel hidden">
+  <div class="panel-head"><h3>📖 Sổ Nhiệm Vụ</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body"><div id="quest-active"></div><div id="quest-done"></div></div>
+</div>
+
+<div id="panel-shop" class="panel hidden">
+  <div class="panel-head"><h3 id="shop-title">🏪 Trان Thương</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body">
+    <div id="shop-tabs"><button id="tab-buy" class="tab active">Mua</button><button id="tab-sell" class="tab">Bán</button></div>
+    <div id="shop-buy" class="shop-list"></div>
+    <div id="shop-sell" class="shop-list hidden"></div>
+    <div id="shop-gold"></div>
+  </div>
+</div>
+
+<div id="panel-settings" class="panel hidden">
+  <div class="panel-head"><h3>⚙️ Cài Đặt</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body">
+    <label>Âm thanh tổng: <input type="range" id="set-master" min="0" max="100" value="80"></label>
+    <label>Nhạc nền: <input type="range" id="set-bgm" min="0" max="100" value="55"></label>
+    <label>Hiệu ứng: <input type="range" id="set-sfx" min="0" max="100" value="70"></label>
+    <label>Chất lượng đồ họa:
+      <select id="set-quality"><option value="low">Thấp</option><option value="medium" selected>Trung bình</option><option value="high">Cao</option></select>
+    </label>
+    <label><input type="checkbox" id="set-inverty"> Đảo trục dọc camera</label>
+    <label><input type="checkbox" id="set-autosave" checked> Tự lưu mỗi 30 giây</label>
+    <div class="set-btns">
+      <button id="btn-save-now" class="btn">💾 Lưu ngay</button>
+      <button id="btn-export" class="btn-ghost">📤 Xuất mã lưu</button>
+      <button id="btn-import" class="btn-ghost">📥 Nhập mã lưu</button>
+    </div>
+    <textarea id="import-area" placeholder="Dán mã lưu vào đây rồi bấm Nhập..."></textarea>
+    <button id="btn-reset" class="btn-ghost danger">🗑️ Xóa toàn bộ dữ liệu</button>
+  </div>
+</div>
+
+<div id="panel-help" class="panel hidden">
+  <div class="panel-head"><h3>📖 Hướng Dẫn</h3><button class="panel-close">✕</button></div>
+  <div class="panel-body" id="help-content"></div>
+</div>
+
+<!-- Hộp thoại NPC -->
+<div id="dialog-box" class="hidden">
+  <div id="dialog-icon">🧙</div>
+  <div id="dialog-main">
+    <div id="dialog-name">NPC</div>
+    <div id="dialog-text"></div>
+    <div id="dialog-options"></div>
+  </div>
+</div>
+
+<div id="ctx-menu" class="hidden"></div>
+<div id="toast-area"></div>
+
+<script>
+/* Thu lỗi toàn cục để kiểm thử tự động đọc */
+window.__ERRS = [];
+window.addEventListener('error', function (e) {
+  window.__ERRS.push({ m: String(e.message), s: String(e.filename || '').split('/').pop(), l: e.lineno, c: e.colno });
+});
+window.addEventListener('unhandledrejection', function (e) {
+  var r = e && e.reason; window.__ERRS.push({ m: 'Promise: ' + String((r && r.message) || r) });
+});
+(function () {
+  var ce = console.error;
+  console.error = function () {
+    try {
+      var parts = [];
+      for (var i = 0; i < arguments.length; i++) {
+        var a = arguments[i];
+        parts.push(typeof a === 'string' ? a : ((a && a.message) || (function(){ try { return JSON.stringify(a).slice(0,200); } catch(_) { return String(a); } })()));
+      }
+      window.__ERRS.push({ m: 'console.error: ' + parts.join(' | ') });
+    } catch (_) {}
+    ce.apply(console, arguments);
+  };
+})();
+if ('ontouchstart' in window) document.body.classList.add('touch');
+</script>
+
+<!-- ===== THƯ VIỆN (UMD, KHÔNG ES MODULE) ===== -->
+<script src="js/lib/three.min.js"></script>
+<script src="js/lib/loaders/GLTFLoader.js"></script>
+<script src="js/lib/loaders/DRACOLoader.js"></script>
+<script src="js/lib/loaders/SkeletonUtils.js"></script>
+<script src="js/lib/shaders/CopyShader.js"></script>
+<script src="js/lib/shaders/LuminosityHighPassShader.js"></script>
+<script src="js/lib/post/EffectComposer.js"></script>
+<script src="js/lib/post/RenderPass.js"></script>
+<script src="js/lib/post/MaskPass.js"></script>
+<script src="js/lib/post/ShaderPass.js"></script>
+<script src="js/lib/post/UnrealBloomPass.js"></script>
+<script src="js/lib/pixi.min.js"></script>
+
+<!-- ===== GAME MODULES (namespace window.MVL, IIFE) ===== -->
+<script src="js/core/Utils.js?v=5"></script>
+<script src="js/data/Data.js?v=5"></script>
+<script src="js/core/Save.js?v=5"></script>
+<script src="js/core/Audio.js?v=5"></script>
+<script src="js/core/Input.js?v=5"></script>
+<script src="js/core/Engine.js?v=5"></script>
+<script src="js/core/Camera.js?v=5"></script>
+<script src="js/core/Assets.js?v=5"></script>
+<script src="js/systems/Effects.js?v=5"></script>
+<script src="js/systems/Combat.js?v=5"></script>
+<script src="js/systems/Progression.js?v=5"></script>
+<script src="js/systems/Inventory.js?v=5"></script>
+<script src="js/systems/Quests.js?v=5"></script>
+<script src="js/systems/Achievements.js?v=5"></script>
+<script src="js/systems/Chat.js?v=5"></script>
+<script src="js/world/World.js?v=5"></script>
+<script src="js/entities/Entities.js?v=5"></script>
+<script src="js/ui/HUD.js?v=5"></script>
+<script src="js/ui/Screens.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
+</body>
+</html>

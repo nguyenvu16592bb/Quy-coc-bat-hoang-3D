@@ -1,0 +1,78 @@
+OK js/lib/three.min.js 607784
+True
+OK js/lib/loaders/GLTFLoader.js 103311
+True
+OK js/lib/loaders/DRACOLoader.js 12721
+True
+OK js/lib/loaders/SkeletonUtils.js 12030
+True
+RETRY-FALLBACK js/lib/post/EffectComposer.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js
+FAIL js/lib/post/EffectComposer.js
+False
+RETRY-FALLBACK js/lib/post/RenderPass.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js
+FAIL js/lib/post/RenderPass.js
+False
+RETRY-FALLBACK js/lib/post/ShaderPass.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js
+FAIL js/lib/post/ShaderPass.js
+False
+RETRY-FALLBACK js/lib/post/MaskPass.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/MaskPass.js
+FAIL js/lib/post/MaskPass.js
+False
+OK js/lib/post/UnrealBloomPass.js 12675
+True
+RETRY-FALLBACK js/lib/shaders/CopyShader.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js
+FAIL js/lib/shaders/CopyShader.js
+False
+RETRY-FALLBACK js/lib/shaders/LuminosityHighPassShader.js <- https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js
+FAIL js/lib/shaders/LuminosityHighPassShader.js
+False
+OK js/lib/draco/draco_decoder.js 754421
+True
+OK js/lib/draco/draco_wasm_wrapper.js 53604
+True
+OK js/lib/draco/draco_decoder.wasm 281481
+True
+OK js/lib/pixi.min.js 460333
+True
+OK assets/models/monsters/fox.glb 162852
+True
+OK assets/models/monsters/cesiumman.glb 490956
+True
+OK assets/models/monsters/horse.glb 181808
+True
+RETRY-FALLBACK assets/models/monsters/parrot.glb <- https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Parrot.glb
+RETRY-FALLBACK assets/models/monsters/parrot.glb <- https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/Parrot.glb
+FAIL assets/models/monsters/parrot.glb
+False
+RETRY-FALLBACK assets/models/monsters/flamingo.glb <- https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Flamingo.glb
+RETRY-FALLBACK assets/models/monsters/flamingo.glb <- https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/Flamingo.glb
+FAIL assets/models/monsters/flamingo.glb
+False
+RETRY-FALLBACK assets/models/monsters/stork.glb <- https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Stork.glb
+RETRY-FALLBACK assets/models/monsters/stork.glb <- https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/Stork.glb
+FAIL assets/models/monsters/stork.glb
+False
+OK assets/models/monsters/xbot.glb 2930032
+True
+OK assets/models/monsters/soldier.glb 2160468
+True
+OK assets/models/monsters/robot.glb 463988
+True
+RETRY-FALLBACK assets/models/monsters/rigged.glb <- https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb
+OK assets/models/monsters/rigged.glb 3276888
+True
+RETRY-FALLBACK assets/models/bosses/monster.glb <- https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Monster/glTF-Binary/Monster.glb
+RETRY-FALLBACK assets/models/bosses/monster.glb <- https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Monster/glTF-Binary/Monster.glb
+FAIL assets/models/bosses/monster.glb
+False
+OK assets/models/bosses/dragon.glb 6566656
+True
+OK assets/models/bosses/brainstem.glb 3194848
+True
+RETRY-FALLBACK assets/models/bosses/helmet.glb <- https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+RETRY-FALLBACK assets/models/bosses/helmet.glb <- https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+FAIL assets/models/bosses/helmet.glb
+False
+OK assets/models/bosses/michelle.glb 3276888
+True
+DONE-ALL

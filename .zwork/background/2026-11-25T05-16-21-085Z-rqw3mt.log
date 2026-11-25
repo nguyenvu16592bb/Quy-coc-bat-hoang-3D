@@ -1,0 +1,8 @@
+Add-Content : Could not find a part of the path 'C:\Users\user\Documents\GitHub\tests\watch.log'.
+At C:\Users\user\Documents\GitHub\Quy-coc-bat-hoang-3D\tools\watch-test.ps1:11 char:3
++   Add-Content -Path $log -Value "[$ts] $msg"
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\user\D...tests\watch.log:String) [Add-Content], DirectoryNotFo 
+   undException
+    + FullyQualifiedErrorId : GetContentWriterDirectoryNotFoundError,Microsoft.PowerShell.Commands.AddContentCommand
+ 
