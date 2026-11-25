@@ -199,7 +199,8 @@ fn world_boss_is_open(hour int) bool {
 
 // world_boss_reward: gold for one world boss attempt by damage dealt —
 // full reward at 20000+ damage, half at 10000+, a share at 2000+,
-// nothing below that.
+// nothing below that. Chuẩn chung vòng 3: mốc >=20000 còn thêm +50 linh
+// thạch + 5 Đá Cường Hóa (xem world_boss_fight bên dưới).
 fn world_boss_reward(damage int) int {
 	if damage >= 20000 {
 		return world_boss.reward_gold
@@ -216,6 +217,8 @@ fn world_boss_reward(damage int) int {
 // world_boss_fight: record one world boss attempt during its open window.
 // Damage accumulates in GState and the reward is paid at once. Returns the
 // gold earned, or 0 when the boss is closed or the damage is too low.
+// Chuẩn chung vòng 3: mốc >=20000 dmg trả đủ +5000 vàng + 50 linh thạch
+// + 5 Đá Cường Hóa (shop id 8); các mốc thấp hơn chỉ trả vàng theo tỉ lệ.
 fn world_boss_fight(damage int, hour int) int {
 	if !world_boss_is_open(hour) {
 		return 0
@@ -230,8 +233,15 @@ fn world_boss_fight(damage int, hour int) int {
 		add_gold(reward)
 		if damage >= 20000 {
 			add_stones(world_boss.reward_stone)
+			for _ in 0 .. 5 {
+				inventory_add(8) // Đá Cường Hóa (shop id 8)
+			}
 		}
-		show_banner('Boss thế giới: gây ${damage} sát thương, +${reward} vàng!')
+		show_banner(if damage >= 20000 {
+			'Boss thế giới: gây ${damage} sát thương, +${reward} vàng, +50 linh thạch, +5 Đá Cường Hóa!'
+		} else {
+			'Boss thế giới: gây ${damage} sát thương, +${reward} vàng!'
+		})
 	}
 	return reward
 }

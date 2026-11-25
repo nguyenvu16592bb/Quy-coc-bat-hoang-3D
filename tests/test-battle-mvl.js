@@ -4,6 +4,13 @@
 // Chạy:  node tests/test-battle-mvl.js        (từ thư mục gốc repo)
 // Thoát: 0 = không có FAIL (MISSING được phép), 1 = có ít nhất 1 FAIL.
 //
+// VÒNG 3 — MODULE (2026-11-25): HTML gốc 3741 dòng đã tách thành shell
+// `velo/web/qu_c_c_b_t_hoang_3d.html` (358 dòng) + `velo/web/quycoc.css` +
+// `velo/web/js/00-state.js … 05-ui.js` (+ `js/06-expand.js` của nhóm 2,
+// có thể chưa xong). Mọi regex scan "HTML" dưới đây chạy trên `html` =
+// nội dung GỘP (shell + css + module theo thứ tự nạp 00→05→06), nên các
+// kỳ vọng số liệu giữ nguyên.
+//
 // NGUYÊN TẮC (giống tests/test-mongvolam.js vòng 1):
 //  - Mọi số liệu đều đọc từ FILE THẬT tại thời điểm chạy bằng regex scan.
 //    Harness KHÔNG hardcode kết quả đếm — chỉ hardcode KỲ VỌNG THIẾT KẾ
@@ -13,32 +20,29 @@
 //    nên file của họ có thể chưa xong khi harness chạy.
 //  - Phần mô phỏng logic là logic thuần JS trong file này, assert số liệu cụ thể
 //    của THIẾT KẾ (không phụ thuộc code game).
-//  - PHẠM VI SCAN: chỉ `velo/web/qu_c_c_b_t_hoang_3d.html`,
-//    `velo/quycoc3d/*.v` và `velo/quycoc3d/assets/scenes/main.scene`.
+//  - PHẠM VI SCAN: shell `velo/web/qu_c_c_b_t_hoang_3d.html` + `velo/web/quycoc.css`
+//    + `velo/web/js/*.js`, `velo/quycoc3d/*.v` và `velo/quycoc3d/assets/scenes/main.scene`.
 //    `velo/battle.v` (2758 dòng, MergeBoard 5x3) là một game khác ở gốc `velo/`,
 //    KHÔNG thuộc quycoc3d nên harness này không đếm nó.
 //
-// CHUẨN THIẾT KẾ VÒNG 2 (đã chốt — nhóm 1+2 sửa source theo chuẩn này).
-// Số trong ngoặc là số ĐO ĐƯỢC trong code sau khi nhóm 1+2 hạ cánh (2026-11-25
-// ~04:57 +07); chỗ nào hai bản khác nhau thì ghi rõ là lệch cần chốt tiếp:
+// CHUẨN THIẾT KẾ VÒNG 2 (đã chốt — số ĐO ĐƯỢC trong code sau khi tách module,
+// 2026-11-25; các lệch cũ vòng 2 đa số ĐÃ khớp nhau, xem mục J):
 //  - Formation: 5 slot, 3 hàng (trước/giữa/sau), vai trò tank/dps/healer.
-//    (HTML partyHeroes mặc định [0,5,7,1,3]; V hero_ids [0,1,2] + extra [5,7]
-//    — cùng 1 tank/1 healer/3 dps nhưng khác 1 thành viên: HTML có id 3,
-//    V có id 2 → lệch, xem mục J.)
+//    (HTML partyHeroes [0,1,2,5,7]; V hero_ids [0,1,2] + extra [5,7] — KHỚP.)
 //  - Auto-battle: bật/tắt; tự dùng skill khi đủ MP + hết CD; tự uống đan khi HP thấp.
-//    (Ngưỡng uống đan: HTML 35% HP, V 25% HP → lệch, xem mục J.)
+//    (Ngưỡng uống đan: HTML 25% HP, V 25% HP (s.hp < s.max_hp / 4) — KHỚP.)
 //  - Raid boss Cóc Xanh: 3 phase, đổi phase ở 66% / 33% HP, mỗi lần đổi phase
-//    gọi quái con, AoE có cảnh báo 1,2 giây trước.
-//    (Quái con mỗi lần đổi phase: HTML 2 con (phase 2) + 3 con (phase 3),
-//    V 3 con/lần → lệch ở phase 2. Boss raid: HTML Kim Thiềm Vương 20000 HP
-//    cố định, V dùng boss của map (HP thay đổi theo map) → lệch.)
+//    gọi 3 quái con, AoE có cảnh báo 1,2 giây trước, giới hạn 120 giây.
+//    (Boss raid: HTML Kim Thiềm Vương 20000 HP cố định, V dùng hình dạng boss
+//    của map nhưng ép HP về 20000, tên Kim Thiềm Vương — KHỚP, chuẩn chung vòng 3.)
 //  - Combo/nộ: combo tăng theo đòn đánh liên tiếp, reset khi ngắt quãng;
 //    nộ đầy 100 → dùng chiêu nộ.
-//    (Cửa sổ combo: HTML 3 giây, V 4,0 giây → lệch. Tích nộ: HTML +8/đòn
-//    (+12/skill) → Nộ Trảm tay (dmg = công×4 + combo×10, AoE 6m); V +6/đòn
-//    (+15/kill) → tự bùng nổ +45% sát thương 6 giây → lệch cơ chế.
+//    (Cửa sổ combo: HTML 3 giây, V 3,0 giây — KHỚP. Tích nộ: HTML +8/đòn
+//    (+12/skill), V +6/đòn (+15/kill); cả hai bản đều Nộ Trảm tay
+//    (dmg = công×4 + combo×10, AoE 6m, xong nộ về 0, combo về 0) — KHỚP,
+//    chuẩn chung vòng 3. Cơ chế cũ V tự bùng nổ +45% dmg 6s đã gỡ bỏ.
 //    Nộ Bạo Linh Phù vòng 1 (12 giây, +35% crit) thì khớp nhau cả hai bản.)
-//    Damage log: HTML giữ tối đa 50 dòng, V giữ 8 dòng → lệch, xem mục J.
+//    Damage log: HTML tối đa 50 dòng, V tối đa 50 dòng (battle_log_max) — KHỚP.
 //  - Tốc độ x1/x2, tạm dừng (đóng băng thời gian), bỏ qua (kết thúc trận ngay).
 //    (HTML có đủ 3; V chưa có → MISSING phía V.)
 //  - Enhance/gem: cost 100×(cấp+1) vàng, rate max(10, 100−cấp×10)%,
@@ -46,23 +50,40 @@
 //    rớt đúng 1 — cả hai bản hiện giữ nguyên cấp khi thất bại, tức rớt 0,
 //    vẫn thỏa giới hạn này; muốn rớt đúng 1 thì cần quyết riêng),
 //    6 loại ngọc, tiền không bao giờ âm.
-//    (Roll deterministic: HTML thêm hạng `attempts×29`, V không có → lệch.)
+//    (Roll deterministic: HTML thêm hạng `attempts×29`, V cũng có
+//    `s.enhance_attempts * 29` — KHỚP.)
 //  - PvP: 8 đối thủ, thắng +25 / thua −15, điểm floor 0, thưởng ngày nhận 1 lần/ngày.
-//    (Thưởng ngày: HTML +150 vàng/+300 bạc/+50 EXP, V chưa có → MISSING phía V.
-//    Boss thế giới: vàng 5000 khớp, đá thưởng lệch — HTML +5 Đá Cường Hóa,
-//    V +50 linh thạch.)
+//    (Thưởng ngày: HTML +150 vàng/+300 bạc/+50 EXP, V đã có claim_pvp_daily
+//    cùng số — KHỚP. Boss thế giới: vàng 5000 khớp, đá thưởng xem chuẩn chung
+//    vòng 3 ở mục L.)
 //  - Town safe: vào thị trấn tắt spawn, ra bật lại; 3 NPC (Trưởng Môn/Chủ Sạp/Thợ Rèn).
 //  - Panel mới trong main.scene: BattlePanel, TownPanel, EnhancePanel, PvpPanel.
-//    (V đã đăng ký BattlePanelUI/TownPanelUI + find() các node, nhưng main.scene
-//    vẫn chưa có node nào → panel V chưa hiển thị được, xem mục I.)
+//    (main.scene đã có đủ 4 node — KHỚP.)
+//
+// CHUẨN CHUNG VÒNG 3 (nhóm 2 đã hạ cánh cả hai bản — xem mục L):
+//  - Nộ khí: Nộ Trảm tay, dmg = công×4 + combo×10, AoE 6m, xong nộ về 0, combo về 0
+//    (HTML castRageSkill; V battle_rage_slash; auto-burst +45% cũ đã gỡ).
+//  - AoE raid: 90 dmg (người chơi + đồng đội), HP không dưới 15
+//    (HTML raidDetonateAoe dmg=90; V raid_aoe_dmg = 90).
+//  - Thưởng boss thế giới (gây ≥20000 dmg): +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa
+//    (HTML đủ cả 3; V world_boss_fight + inventory_add(8) × 5).
+//  - Boss raid: Kim Thiềm Vương 20000 HP / 120s / 3 phase
+//    (HTML boss 20000 HP cố định; V raid_boss_max_hp = 20000, ép HP boss về 20000).
+//  - Thêm: tank aggro thật (battle_taunt 6s, threat 200) phía V.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = path.join(ROOT, 'velo', 'web', 'qu_c_c_b_t_hoang_3d.html');
+const WEBDIR = path.join(ROOT, 'velo', 'web');
+const HTML = path.join(WEBDIR, 'qu_c_c_b_t_hoang_3d.html'); // shell vòng 3 (358 dòng)
+const CSS = path.join(WEBDIR, 'quycoc.css');
+const JSDIR = path.join(WEBDIR, 'js');
 const VDIR = path.join(ROOT, 'velo', 'quycoc3d');
 const SCENE = path.join(VDIR, 'assets', 'scenes', 'main.scene');
+
+// Thứ tự nạp module trong shell (00→05 bắt buộc, 06 của nhóm 2: có thể chưa xong).
+const MODULE_ORDER = ['00-state.js', '01-world.js', '02-combat.js', '03-battle.js', '04-mvl.js', '05-ui.js', '06-expand.js'];
 
 let pass = 0, fail = 0, missing = 0;
 const results = [];
@@ -84,6 +105,31 @@ function checkMissing(cond, name, detail) {
 
 function read(p) {
   try { return fs.readFileSync(p, 'utf8'); } catch (e) { return null; }
+}
+// Đếm dòng theo kiểu `wc -l` (file kết thúc bằng \n thì dòng cuối không tính thêm).
+function lineCount(text) {
+  if (text === null || text === undefined) return 0;
+  const n = text.split('\n').length;
+  return text.endsWith('\n') ? n - 1 : n;
+}
+// --- Loader vòng 3: đọc shell + css + từng module JS, gộp theo thứ tự nạp.
+// `shell` giữ riêng để kiểm tra cấu trúc shell; `html` là nội dung GỘP mà
+// mọi regex scan "HTML" phía dưới dùng (thay cho 1 file HTML duy nhất vòng 1–2).
+// Module nào chưa có file (vd. 06-expand.js của nhóm 2) thì bỏ qua, không crash.
+const shell = read(HTML);
+const cssText = read(CSS);
+const jsParts = {};
+for (const m of MODULE_ORDER) {
+  const t = read(path.join(JSDIR, m));
+  if (t !== null) jsParts[m] = t;
+}
+const combinedHtml = [shell, cssText, ...MODULE_ORDER.map((m) => jsParts[m]).filter(Boolean)]
+  .filter((s) => s !== null && s !== undefined).join('\n');
+if (shell === null) {
+  report('FAIL', 'Shell HTML tồn tại (velo/web/qu_c_c_b_t_hoang_3d.html)', 'không đọc được ' + HTML);
+} else {
+  const scriptSrcs = [...shell.matchAll(/<script\s+src="js\/(\d\d-[a-z]+\.js)"><\/script>/g)].map((m) => m[1]);
+  console.log(`   (shell ${lineCount(shell)} dòng, nạp module: ${scriptSrcs.join(' → ') || 'không có'}${jsParts['06-expand.js'] ? ' → 06-expand.js' : ' (06-expand.js của nhóm 2 chưa có)'})`);
 }
 function vFiles() {
   try {
@@ -111,7 +157,7 @@ function countDefLiterals(files, defNames) {
   return null;
 }
 
-const html = read(HTML);
+const html = combinedHtml; // nội dung GỘP shell + css + module js/00–05 (+06 nếu có)
 const vMap = readAllV();
 const vList = Object.entries(vMap).map(([name, text]) => ({ name, text }));
 const scene = read(SCENE);
@@ -317,8 +363,8 @@ console.log('\n== C. Raid boss Cóc Xanh (3 phase) ==');
   check(cross.vRaidAoeWarnS === 1.2, 'V: AoE có cảnh báo 1,2 giây (vòng xoáy telegraph)',
     `raid_aoe_warn_s=${vAoe ?? '?'}`);
   check(/spawn_monster\(mut world, m\.boss/.test(battleMapV),
-    'V: raid dùng boss của map (m.boss — HP thay đổi theo map, không cố định 20000)',
-    'có spawn_monster(m.boss)');
+    'V: raid dùng hình dạng boss của map nhưng ép HP về 20000, tên Kim Thiềm Vương (chuẩn chung vòng 3)',
+    'có spawn_monster(m.boss) + hb.hp = raid_boss_max_hp');
   check(/for _ in 0 \.\. 3 \{\s*\n?\s*spawn_monster/.test(battleMapV),
     'V: mở raid gọi thêm 3 quái con ngay từ đầu', 'có spawn 3 con khi start_raid_boss');
   check(/Raid Boss chuyển giai đoạn/.test(battleMapV),
@@ -398,9 +444,11 @@ console.log('\n== D. Combo / nộ / damage log ==');
   check(/battle_combo_t = battle_combo_window/.test(battleMapV),
     'V: mỗi đòn trúng làm mới cửa sổ combo', 'có battle_combo_t = battle_combo_window');
 
-  // D2. Nộ khí (mới vòng 2) — KHÁC CƠ CHẾ hai bản:
+  // D2. Nộ khí (mới vòng 2) — CHUẨN CHUNG VÒNG 3 (nhóm 2 đã hạ cánh cả hai bản):
   // HTML: +8/đòn (+12/skill), đầy 100 → Nộ Trảm tay (dmg = công×4 + combo×10, AoE 6m).
-  // V: +6/đòn (+15/kill), đầy 100 → tự bùng nổ +45% sát thương 6 giây.
+  // V: +6/đòn (+15/kill), đầy 100 → Nộ Trảm tay `battle_rage_slash`
+  // (dmg = atk×4 + combo×10, AoE 6m, xong nộ về 0, combo về 0).
+  // Cơ chế cũ V tự bùng nổ +45% dmg 6s (`battle_rage_burst_s`) đã gỡ bỏ.
   if (html !== null) {
     check(/gameState\.rage = Math\.min\(100, \(gameState\.rage \|\| 0\) \+ \(isSkill \? 12 : 8\)\)/.test(html),
       'HTML: tích nộ +8/đòn thường, +12/skill (tối đa 100)', 'có rage +8/+12, min 100');
@@ -410,16 +458,26 @@ console.log('\n== D. Combo / nộ / damage log ==');
   }
   const vRageHit = (battleMapV.match(/const battle_rage_per_hit = (\d+)/) || [])[1];
   const vRageKill = (battleMapV.match(/const battle_rage_per_kill = (\d+)/) || [])[1];
-  const vBurstS = (battleMapV.match(/const battle_rage_burst_s = f32\(([\d.]+)\)/) || [])[1];
   cross.vRagePerHit = vRageHit !== undefined ? parseInt(vRageHit, 10) : null;
   cross.vRagePerKill = vRageKill !== undefined ? parseInt(vRageKill, 10) : null;
-  cross.vRageBurstS = vBurstS !== undefined ? parseFloat(vBurstS) : null;
   check(cross.vRagePerHit === 6 && cross.vRagePerKill === 15,
     'V: tích nộ +6/đòn, +15/kill (tối đa 100)', `per_hit=${vRageHit ?? '?'}, per_kill=${vRageKill ?? '?'}`);
-  check(cross.vRageBurstS === 6.0 && /\+45% sát thương \(6 giây\)/.test(battleMapV),
-    'V: nộ đầy tự bùng nổ +45% sát thương trong 6 giây', `burst=${vBurstS ?? '?'}s`);
-  check(/s\.battle_rage = 0\s*\n?\s*s\.aura = battle_rage_burst_s/.test(battleMapV),
-    'V: bùng nổ xong nộ về 0 (không giữ 100)', 'có battle_rage = 0 + aura = burst');
+  check(/const battle_rage_max = 100/.test(battleMapV),
+    'V: nộ tối đa 100, đầy thì CHỜ bấm tay (không tự bùng — chuẩn chung vòng 3)', 'có battle_rage_max = 100');
+  check(/fn battle_rage_slash/.test(battleMapV),
+    'V: có battle_rage_slash (Nộ Trảm tay, chuẩn chung vòng 3)', 'có fn battle_rage_slash');
+  const vSlashMult = (battleMapV.match(/const battle_rage_slash_mult = (\d+)/) || [])[1];
+  const vSlashCombo = (battleMapV.match(/const battle_rage_slash_combo = (\d+)/) || [])[1];
+  cross.vRageSlashMult = vSlashMult !== undefined ? parseInt(vSlashMult, 10) : null;
+  cross.vRageSlashCombo = vSlashCombo !== undefined ? parseInt(vSlashCombo, 10) : null;
+  check(cross.vRageSlashMult === 4 && cross.vRageSlashCombo === 10,
+    'V: Nộ Trảm dmg = công×4 + combo×10 (khớp HTML)', `mult=${vSlashMult ?? '?'}, combo=${vSlashCombo ?? '?'}`);
+  check(/const battle_rage_slash_range = f32\(6\.0\)/.test(battleMapV),
+    'V: Nộ Trảm AoE 6m quanh leader (khớp HTML)', 'có battle_rage_slash_range = f32(6.0)');
+  check(/s\.battle_rage = 0\s*\n\s*s\.battle_combo = 0/.test(battleMapV),
+    'V: dùng Nộ Trảm xong nộ về 0, combo về 0 (khớp HTML)', 'có battle_rage = 0 + battle_combo = 0');
+  check(!/const battle_rage_burst_s/.test(battleMapV),
+    'V: cơ chế cũ tự bùng nổ +45% đã gỡ (không còn battle_rage_burst_s)', 'không còn hằng battle_rage_burst_s');
 
   // D3. Nộ Bạo Linh Phù (vòng 1) — vẫn khớp nhau cả hai bản.
   if (html !== null) {
@@ -454,7 +512,7 @@ console.log('\n== D. Combo / nộ / damage log ==');
   check(/FloatText/.test(hudV), 'V: có số sát thương nổi (FloatText trong hud.v)', 'có FloatText');
 
   // D5. Mô phỏng thuần JS: combo + nộ khí + damage log.
-  // Combo: +1 mỗi đòn trúng, reset về 0 nếu ngắt quãng quá cửa sổ (HTML 3s, V 4.0s).
+  // Combo: +1 mỗi đòn trúng, reset về 0 nếu ngắt quãng quá cửa sổ (chuẩn chung 3s cả hai bản).
   function comboDmg(base, combo) { return Math.round(base * (1 + Math.min(combo, 50) * 0.01)); }
   check(comboDmg(100, 0) === 100, 'Combo: 0 combo → sát thương không đổi (100)', `dmg=${comboDmg(100, 0)}`);
   check(comboDmg(100, 10) === 110, 'Combo: 10 combo → +10% (100 → 110)', `dmg=${comboDmg(100, 10)}`);
@@ -468,12 +526,13 @@ console.log('\n== D. Combo / nộ / damage log ==');
     check(combo === 3, 'Combo (cửa sổ 3s): 3 đòn liên tiếp trong 2s → combo 3', `combo=${combo}`);
     hit(6, 3); // ngắt 4s
     check(combo === 1, 'Combo (cửa sổ 3s): ngắt quãng 4s (>3s) → reset về 1 khi đánh lại', `combo=${combo}`);
-    // Cửa sổ combo V 4.0s: ngắt đúng 4s vẫn giữ (đòn trong cửa sổ), ngắt 5s mới reset.
+    // Cửa sổ combo chuẩn chung vòng 2: 3s cả hai bản (HTML comboTimer=3,
+    // V battle_combo_window=3.0). Ngắt đúng 3s vẫn giữ, ngắt 4s mới reset.
     combo = 0; lastHit = 0;
-    hit(0, 4); hit(1, 4); hit(2, 4); hit(6, 4); // ngắt 4s, đúng cửa sổ
-    check(combo === 4, 'Combo (cửa sổ 4.0s): ngắt đúng 4s vẫn giữ combo → 4', `combo=${combo}`);
-    hit(11, 4); // ngắt 5s
-    check(combo === 1, 'Combo (cửa sổ 4.0s): ngắt 5s (>4s) → reset về 1', `combo=${combo}`);
+    hit(0, 3); hit(1, 3); hit(2, 3); hit(5, 3); // ngắt 3s, đúng cửa sổ
+    check(combo === 4, 'Combo (cửa sổ chung 3s): ngắt đúng 3s vẫn giữ combo → 4', `combo=${combo}`);
+    hit(9, 3); // ngắt 4s
+    check(combo === 1, 'Combo (cửa sổ chung 3s): ngắt 4s (>3s) → reset về 1', `combo=${combo}`);
   }
   {
     // Nộ khí HTML: +8/đòn, +12/skill, đầy 100 → Nộ Trảm (dmg = công×4 + combo×10).
@@ -484,16 +543,28 @@ console.log('\n== D. Combo / nộ / damage log ==');
     check(rage === 100, 'Nộ (HTML): thêm 1 skill (+12) → đầy 100, Nộ Trảm sẵn sàng', `rage=${rage}`);
     const rageDmg = (atk, combo) => atk * 4 + combo * 10;
     check(rageDmg(68, 10) === 372, 'Nộ Trảm (HTML): công 68, combo 10 → dmg 68×4 + 10×10 = 372', `dmg=${rageDmg(68, 10)}`);
-    // Nộ khí V: +6/đòn, +15/kill, đầy 100 → tự bùng nổ +45% dmg 6s, nộ về 0.
+    // Nộ khí V (chuẩn chung vòng 3): +6/đòn, +15/kill, đầy 100 → CHỜ bấm tay,
+    // Nộ Trảm (dmg = công×4 + combo×10, AoE 6m), xong nộ về 0, combo về 0.
+    // Không tự bùng nữa; nộ chưa đầy hoặc không có quái trong 6m thì không trừ nộ.
     rage = 0;
     for (let i = 0; i < 10; i++) rage = Math.min(100, rage + 6);
     check(rage === 60, 'Nộ (V): 10 đòn (+6/đòn) → 60/100', `rage=${rage}`);
     for (let i = 0; i < 3; i++) rage = Math.min(100, rage + 15);
-    check(rage === 100, 'Nộ (V): thêm 3 kill (+15/kill) → đầy 100, bùng nổ', `rage=${rage}`);
-    let aura = 0; if (rage >= 100) { rage = 0; aura = 6.0; }
-    check(rage === 0 && aura === 6.0, 'Nộ (V): bùng nổ xong nộ về 0, aura +45% dmg 6 giây', `rage=${rage}, aura=${aura}s`);
-    const burstDmg = (base) => Math.round(base * 1.45);
-    check(burstDmg(100) === 145, 'Nộ (V): đang bùng nổ, đòn 100 → 145 (+45%)', `dmg=${burstDmg(100)}`);
+    check(rage === 100, 'Nộ (V): thêm 3 kill (+15/kill) → đầy 100, chờ bấm Nộ Trảm', `rage=${rage}`);
+    let comboV = 10;
+    const slashDmg = (atk, combo) => atk * 4 + combo * 10;
+    const slash = (r, c, foesInRange) => {
+      if (r < 100 || foesInRange === 0) return { rage: r, combo: c, dmg: 0, used: false };
+      return { rage: 0, combo: 0, dmg: slashDmg(68, c), used: true };
+    };
+    const s1 = slash(rage, comboV, 3);
+    check(s1.used === true && s1.dmg === 372 && s1.rage === 0 && s1.combo === 0,
+      'Nộ (V): bấm Nộ Trảm khi đầy 100, 3 quái trong 6m → dmg 372, nộ về 0, combo về 0',
+      `dmg=${s1.dmg}, rage=${s1.rage}, combo=${s1.combo}`);
+    const s2 = slash(60, 5, 3);
+    check(s2.used === false && s2.rage === 60, 'Nộ (V): nộ mới 60/100 bấm Nộ Trảm → không dùng, không trừ nộ', `used=${s2.used}`);
+    const s3 = slash(100, 5, 0);
+    check(s3.used === false && s3.rage === 100, 'Nộ (V): nộ đầy nhưng không có quái trong 6m → không dùng, giữ nguyên 100', `used=${s3.used}`);
   }
   {
     // Damage log: quá giới hạn thì xóa dòng cũ nhất (cơ chế giống nhau, số khác nhau).
@@ -502,8 +573,8 @@ console.log('\n== D. Combo / nộ / damage log ==');
       for (let i = 0; i < n; i++) { log.push({ dmg: 100 + i }); if (log.length > cap) log.shift(); }
       return log;
     };
-    const logV = capLog(8, 10);
-    check(logV.length === 8 && logV[0].dmg === 102, 'Damage log (V, tối đa 8): đẩy 10 dòng → giữ 8, cũ nhất là đòn thứ 3 (dmg 102)',
+    const logV = capLog(50, 55);
+    check(logV.length === 50 && logV[0].dmg === 105, 'Damage log (V, tối đa 50 — chuẩn chung vòng 2): đẩy 55 dòng → giữ 50, cũ nhất là đòn thứ 6 (dmg 105)',
       `len=${logV.length}, log[0].dmg=${logV[0].dmg}`);
     const logHtml = capLog(50, 55);
     check(logHtml.length === 50 && logHtml[0].dmg === 105, 'Damage log (HTML, tối đa 50): đẩy 55 dòng → giữ 50, cũ nhất là đòn thứ 6 (dmg 105)',
@@ -652,15 +723,16 @@ console.log('\n== F. Enhance / gem (cường hóa / khảm ngọc) ==');
   check(applyEnhance(0, false, 1) === 0, 'Enhance: cấp 0 thất bại → vẫn 0 (không âm)', `0 → ${applyEnhance(0, false, 1)}`);
   check(applyEnhance(1, false, 1) === 0, 'Enhance: cấp 1 thất bại, rớt 1 → 0 (không âm)', `1 → ${applyEnhance(1, false, 1)}`);
   {
-    // Roll deterministic: HTML thêm hạng attempts×29, V không có (lệch, xem mục J).
+    // Roll deterministic: HTML thêm hạng attempts×29, V cũng có
+    // `s.enhance_attempts * 29` trong enhance_roll (equipment.v) — KHỚP.
     const htmlRollExtra = html !== null && /\+ \(gameState\.enhanceAttempts \|\| 0\) \* 29/.test(html);
-    const vRollExtra = /enhanceAttempts/.test(equipV);
+    const vRollExtra = /s\.enhance_attempts \* 29/.test(equipV) || /enhance_attempts \* 29/.test(equipV);
     cross.htmlRollExtra29 = htmlRollExtra;
     cross.vRollExtra29 = vRollExtra;
     if (html !== null) {
       check(htmlRollExtra, 'HTML: roll cường hóa cộng thêm attempts×29 (đổi seed mỗi lần thử)', 'có (enhanceAttempts || 0) * 29');
     }
-    check(vRollExtra, 'V: roll cường hóa CÓ hạng attempts×29 (khớp HTML, chuẩn chung vòng 2)', 'equipment.v có enhanceAttempts * 29');
+    check(vRollExtra, 'V: roll cường hóa CÓ hạng attempts×29 (khớp HTML, chuẩn chung vòng 2)', 'equipment.v có s.enhance_attempts * 29 trong enhance_roll');
   }
   {
     // Tiền không âm: thiếu tiền thì từ chối, đủ tiền thì trừ đúng phí.
@@ -703,7 +775,7 @@ console.log('\n== G. PvP UI (đấu trường) ==');
   check(!!wb, 'V: boss thế giới Thiên Ma Tôn Chủ (20–21h) còn nguyên', 'có world_boss Thiên Ma Tôn Chủ');
 
   // G2. Thưởng ngày PvP: HTML ĐÃ có (+150 vàng/+300 bạc/+50 EXP, 1 lần/ngày),
-  // V vẫn chưa có.
+  // V cũng đã có claim_pvp_daily cùng số — KHỚP (vòng 2 đã chốt xong).
   if (html !== null) {
     check(/function claimPvpDaily/.test(html), 'HTML: có claimPvpDaily (nhận thưởng ngày PvP)', 'có claimPvpDaily');
     check(/addGold\(150\); addSilver\(300\); gameState\.exp \+= 50/.test(html),
@@ -713,11 +785,15 @@ console.log('\n== G. PvP UI (đấu trường) ==');
     check(/Đã nhận hôm nay/.test(html), 'HTML: nút thưởng ngày báo "Đã nhận hôm nay" khi đã nhận', 'có "Đã nhận hôm nay"');
     cross.htmlPvpDaily = { gold: 150, silver: 300, exp: 50 };
   }
-  const hasDailyPvpV = /pvp_daily|daily_pvp|pvp.*thưởng ngày|thưởng ngày.*pvp|daily_reward/i.test(pvpV)
+  const hasDailyPvpV = /fn claim_pvp_daily/.test(pvpV)
+    || /pvp_daily|daily_pvp|pvp.*thưởng ngày|thưởng ngày.*pvp|daily_reward/i.test(pvpV)
     || /daily/i.test(battleMapV);
   checkMissing(hasDailyPvpV, 'V: có thưởng ngày PvP (nhận 1 lần/ngày)',
-    hasDailyPvpV ? 'có marker thưởng ngày PvP' : 'chưa có thưởng ngày PvP trong V (nhóm 2 đang làm)');
-  cross.vPvpDaily = hasDailyPvpV ? { gold: null, silver: null, exp: null } : null;
+    hasDailyPvpV ? 'có fn claim_pvp_daily trong pvp.v' : 'chưa có thưởng ngày PvP trong V (nhóm 2 đang làm)');
+  check(/fn claim_pvp_daily/.test(pvpV) && /add_gold\(150\)/.test(pvpV) && /add_silver\(300\)/.test(pvpV) && /gain_exp\(50\)/.test(pvpV),
+    'V: thưởng ngày PvP = +150 vàng / +300 bạc / +50 EXP (khớp HTML)',
+    'có claim_pvp_daily + add_gold(150) + add_silver(300) + gain_exp(50)');
+  cross.vPvpDaily = hasDailyPvpV ? { gold: 150, silver: 300, exp: 50 } : null;
 
   // G3. HTML: đã có PvP/đấu trường (panel-pvp + 8 đối thủ copy từ pvp.v).
   if (html !== null) {
@@ -733,15 +809,20 @@ console.log('\n== G. PvP UI (đấu trường) ==');
       'HTML: hạng PvP = max(1, 1000 − điểm/10) (khớp V)', 'có pvpRankFromPoints');
     check(/Thắng <b>\+25<\/b> điểm, thua <b>-15<\/b> điểm/.test(html),
       'HTML: thắng +25 / thua −15 điểm (khớp V)', 'có +25/−15 trong panel PvP');
-    // Boss thế giới trong HTML: vàng 5000 khớp V, đá thưởng lệch (HTML +5 Đá Cường Hóa, V +50 linh thạch).
+    // Boss thế giới trong HTML: vàng 5000 + 50 linh thạch (rewardStone) + 5 Đá Cường Hóa
+    // khi gây ≥20000 dmg — đủ cả 3 theo chuẩn chung vòng 3 (mục L). V mới có
+    // vàng + 50 linh thạch, chưa có Đá Cường Hóa.
     const htmlWb = (html.match(/var WORLD_BOSS = \{[^}]*\}/) || [])[0] || '';
     const htmlWbHp = (htmlWb.match(/maxHp: (\d+)/) || [])[1];
     cross.htmlWorldBossHp = htmlWbHp !== undefined ? parseInt(htmlWbHp, 10) : null;
     check(cross.htmlWorldBossHp === 200000, 'HTML: boss thế giới Thiên Ma Tôn Chủ 200.000 HP (khớp V)',
       `WORLD_BOSS.maxHp=${htmlWbHp ?? '?'}`);
     check(/addItem\('da_cuong_hoa', 5\)/.test(html),
-      'HTML: boss thế giới thưởng thêm +5 Đá Cường Hóa khi ≥20000 dmg (khác V: +50 linh thạch)',
+      'HTML: boss thế giới thưởng thêm +5 Đá Cường Hóa khi ≥20000 dmg (cùng +50 linh thạch = chuẩn chung vòng 3)',
       'có addItem(da_cuong_hoa, 5)');
+    check(/rewardStone:\s*50/.test(html),
+      'HTML: boss thế giới thưởng +50 linh thạch khi ≥20000 dmg (WORLD_BOSS.rewardStone)',
+      'có rewardStone: 50');
   }
 
   // G4. Mô phỏng thuần JS: điểm, hạng, thưởng ngày.
@@ -873,10 +954,16 @@ console.log('\n== I. Panel mới trong main.scene ==');
   const hudFindsNew = /find\('HUD\/(BattlePanel|TownPanel|EnhancePanel|PvpPanel)/.test(hudV);
   checkMissing(hudFindsNew, 'hud.v: find() tới panel battle mới',
     hudFindsNew ? 'hud.v đã find panel mới' : 'hud.v chưa find panel battle mới (panel tự find trong battle_map.v/town.v)');
-  // HTML: 8 panel (thêm team + pvp); battle UI là thanh bar, không phải panel.
+  // HTML: 8 panel gốc (thêm team + pvp); battle UI là thanh bar, không phải panel.
+  // Vòng 3 nhóm 2 thêm 5 panel mới cho 06-expand.js (mount/war/vip/mail/rank)
+  // → tổng có thể hơn 8, chỉ khóa 8 panel gốc phải còn đủ.
   if (html !== null) {
     const panels = [...new Set((html.match(/id="panel-[a-z-]+"/g) || []).map((s) => s.replace(/id="|"/g, '')))];
-    check(panels.length === 8, 'HTML: đủ 8 panel (6 cũ + team + pvp)', `panel: ${panels.join(', ')}`);
+    const base8 = ['panel-bag', 'panel-sect', 'panel-activity', 'panel-event', 'panel-shop', 'panel-guild', 'panel-team', 'panel-pvp'];
+    check(base8.every((p) => panels.includes(p)) && panels.length >= 8,
+      'HTML: đủ 8 panel gốc (6 cũ + team + pvp)', `panel: ${panels.join(', ')}`);
+    const extraPanels = panels.filter((p) => !base8.includes(p));
+    if (extraPanels.length > 0) console.log(`   (ghi chú: thêm ${extraPanels.length} panel mới vòng 3 của nhóm 2: ${extraPanels.join(', ')})`);
     checkMissing(panels.includes('panel-battle'), 'HTML: có panel-battle riêng',
       'HTML dùng battle bar (btn-auto/pause/speed/combo/raid-bar) thay cho panel-battle');
   }
@@ -921,23 +1008,117 @@ crossCheck('boss thế giới: HP', cross.htmlWorldBossHp, cross.vWorldBossHp);
 crossCheck('roll cường hóa: có hạng attempts×29', cross.htmlRollExtra29, cross.vRollExtra29);
 {
   // Ghi chú đo được, không phải assert đơn trị:
-  // - Nộ khí vòng 2 khác cơ chế: HTML Nộ Trảm tay (dmg = công×4 + combo×10),
-  //   V tự bùng nổ +45% dmg 6s. Cần chốt một cơ chế chung.
-  console.log('   (ghi chú: nộ khí HTML = Nộ Trảm tay, V = tự bùng nổ +45% dmg 6s — khác cơ chế, cần chốt chung)');
-  // - Boss raid: HTML Kim Thiềm Vương 20000 HP cố định, V dùng boss của map.
-  console.log(`   (ghi chú: boss raid HTML = Kim Thiềm Vương ${cross.htmlRaidBossHp ?? '?'} HP cố định, V = boss của map (HP theo map))`);
-  // - AoE raid: HTML 90 dmg cố định (đồng đội 60), V 20 + phase×10 (30/40/50).
-  console.log('   (ghi chú: AoE raid HTML = 90 dmg cố định, V = 20 + phase×10 — khác công thức)');
-  // - Đá thưởng boss thế giới: HTML +5 Đá Cường Hóa, V +50 linh thạch.
-  console.log('   (ghi chú: thưởng boss thế giới HTML = +5 Đá Cường Hóa, V = +50 linh thạch — khác loại đá)');
-  // - Thưởng ngày PvP: HTML +150/+300/+50, V chưa có.
-  if (cross.htmlPvpDaily && !cross.vPvpDaily) {
+  // - Nộ khí: HTML Nộ Trảm tay, V cũng Nộ Trảm tay (`battle_rage_slash`,
+  //   dmg = công×4 + combo×10, AoE 6m) — KHỚP theo chuẩn chung vòng 3 (mục L).
+  console.log('   (ghi chú: nộ khí HTML = V = Nộ Trảm tay (dmg = công×4 + combo×10, AoE 6m) — KHỚP, chuẩn chung vòng 3)');
+  // - Boss raid: HTML Kim Thiềm Vương 20000 HP cố định, V dùng hình dạng boss
+  //   của map nhưng ép HP về 20000, tên Kim Thiềm Vương — KHỚP (chuẩn chung vòng 3).
+  console.log(`   (ghi chú: boss raid HTML = Kim Thiềm Vương ${cross.htmlRaidBossHp ?? '?'} HP cố định, V = hình boss của map ép HP 20000, tên Kim Thiềm Vương — KHỚP, chuẩn chung vòng 3)`);
+  // - AoE raid: HTML 90 dmg, V 90 dmg (`raid_aoe_dmg`) — KHỚP (chuẩn chung vòng 3).
+  console.log('   (ghi chú: AoE raid HTML = V = 90 dmg cố định — KHỚP, chuẩn chung vòng 3)');
+  // - Đá thưởng boss thế giới: HTML +50 linh thạch + 5 Đá Cường Hóa,
+  //   V cũng +50 linh thạch + 5 Đá Cường Hóa — KHỚP (chuẩn chung vòng 3).
+  console.log('   (ghi chú: thưởng boss thế giới HTML = V = +50 linh thạch + 5 Đá Cường Hóa — KHỚP, chuẩn chung vòng 3)');
+  // - Thưởng ngày PvP: HTML +150/+300/+50, V đã có claim_pvp_daily cùng số — KHỚP.
+  if (cross.htmlPvpDaily && cross.vPvpDaily) {
+    console.log('   (ghi chú: thưởng ngày PvP HTML = V = +150 vàng/+300 bạc/+50 EXP — KHỚP)');
+  } else if (cross.htmlPvpDaily && !cross.vPvpDaily) {
     console.log('   (ghi chú: thưởng ngày PvP HTML = +150 vàng/+300 bạc/+50 EXP, V chưa có)');
   }
 }
 
 // =====================================================================
-// K. Docs đi kèm (vòng 2)
+// L. Chuẩn chung vòng 3 (nhóm 2 đã hạ cánh cả hai bản — kiểm tra khớp nhau;
+//    phía nào chưa có thì MISSING, không FAIL). Bốn chuẩn: (1) nộ khí Nộ Trảm tay,
+//    dmg = công×4 + combo×10, AoE 6m, xong nộ về 0, combo về 0; (2) AoE raid 90 dmg
+//    (người chơi + đồng đội), HP sàn 15; (3) thưởng boss thế giới (gây ≥20000 dmg):
+//    +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa; (4) boss raid Kim Thiềm Vương
+//    20000 HP / 120s / 3 phase.
+// =====================================================================
+console.log('\n== L. Chuẩn chung vòng 3 (nhóm 2 đang chốt) ==');
+{
+  // L1. Nộ Trảm tay — HTML đã có từ vòng 2 (castRageSkill trong 03-battle.js);
+  // V đã hạ cánh battle_rage_slash (chuẩn chung vòng 3), auto-burst cũ đã gỡ.
+  if (html !== null) {
+    const rageFn = (html.match(/function castRageSkill[\s\S]{0,700}?var dmg = ([^;]+);/) || [])[1];
+    check(/attackPower \* 4 \+ \(gameState\.combo \|\| 0\) \* 10/.test(html),
+      'Chuẩn chung: Nộ Trảm tay dmg = công×4 + combo×10 (HTML đã có)',
+      `công thức đo được: ${rageFn ? rageFn.trim() : '?'}`);
+    check(/function castRageSkill[\s\S]{0,700}?distanceTo\([^)]*\) <= 6/.test(html),
+      'Chuẩn chung: Nộ Trảm tay là AoE 6m (HTML đã có)', 'có distanceTo <= 6 trong castRageSkill');
+  }
+  const vRageSkill = /fn battle_rage_slash/.test(battleMapV)
+    && /const battle_rage_slash_mult = 4/.test(battleMapV)
+    && /const battle_rage_slash_combo = 10/.test(battleMapV);
+  check(vRageSkill, 'Chuẩn chung: V đã chốt Nộ Trảm tay (dmg = công×4 + combo×10, AoE 6m)',
+    'battle_map.v có fn battle_rage_slash + mult 4 + combo 10');
+  // Mô phỏng thuần JS: công thức chuẩn chung Nộ Trảm.
+  const rageSkillDmg = (atk, combo) => atk * 4 + combo * 10;
+  check(rageSkillDmg(68, 10) === 372, 'Nộ Trảm (chuẩn chung): công 68, combo 10 → 68×4 + 10×10 = 372', `dmg=${rageSkillDmg(68, 10)}`);
+  check(rageSkillDmg(68, 0) === 272, 'Nộ Trảm (chuẩn chung): công 68, combo 0 → 272 (không cộng combo)', `dmg=${rageSkillDmg(68, 0)}`);
+  check(rageSkillDmg(100, 50) === 900, 'Nộ Trảm (chuẩn chung): công 100, combo 50 → 100×4 + 50×10 = 900', `dmg=${rageSkillDmg(100, 50)}`);
+
+  // L2. AoE raid 90 — HTML đã có (raidDetonateAoe trong 03-battle.js);
+  // V đã hạ cánh raid_aoe_dmg = 90 (chuẩn chung vòng 3).
+  if (html !== null) {
+    const aoeM = (html.match(/function raidDetonateAoe[\s\S]{0,900}?var dmg = (\d+);/) || [])[1];
+    cross.htmlRaidAoeDmg = aoeM !== undefined ? parseInt(aoeM, 10) : null;
+    check(cross.htmlRaidAoeDmg === 90, 'Chuẩn chung: AoE raid 90 dmg người chơi (HTML đã có)',
+      `raidDetonateAoe dmg=${aoeM ?? '?'}`);
+    check(/applyAllyDamage\(a, 90\)/.test(html),
+      'Chuẩn chung: AoE raid 90 dmg đồng đội (HTML đã có — nhóm 2 chốt "90 như hero", thay cho 60 cũ)', 'có applyAllyDamage(a, 90)');
+    check(/gameState\.hp = Math\.max\(15, gameState\.hp - dmg\)/.test(html),
+      'Chuẩn chung: AoE raid không đánh HP dưới 15 (HTML đã có)', 'có Math.max(15, hp - dmg)');
+  }
+  const vAoe90 = /const raid_aoe_dmg = 90/.test(battleMapV) && /dmg := raid_aoe_dmg/.test(battleMapV);
+  check(vAoe90, 'Chuẩn chung: V đã chốt AoE raid 90 dmg cố định (raid_aoe_dmg)',
+    'battle_map.v có const raid_aoe_dmg = 90 + dmg := raid_aoe_dmg');
+  // Mô phỏng thuần JS: AoE 90 + sàn HP 15.
+  const aoeHpAfter = (hp) => Math.max(15, hp - 90);
+  check(aoeHpAfter(200) === 110, 'AoE 90 (chuẩn chung): HP 200 → 110', `hp=${aoeHpAfter(200)}`);
+  check(aoeHpAfter(100) === 15, 'AoE 90 (chuẩn chung): HP 100 → sàn 15 (không về 10)', `hp=${aoeHpAfter(100)}`);
+  check(aoeHpAfter(15) === 15, 'AoE 90 (chuẩn chung): HP 15 → vẫn 15 (không chết vì AoE)', `hp=${aoeHpAfter(15)}`);
+
+  // L3. Thưởng boss thế giới — HTML đã đủ cả 3 (vàng + linh thạch + Đá Cường Hóa);
+  // V đã hạ cánh world_boss_fight + inventory_add(8) × 5 (chuẩn chung vòng 3).
+  const vStone50 = /reward_stone:\s*50/.test(pvpV);
+  check(vStone50, 'Chuẩn chung: V thưởng boss thế giới +50 linh thạch (khớp HTML)',
+    'pvp.v có reward_stone: 50');
+  const vEnhStone = /\+5 Đá Cường Hóa/.test(pvpV) && /for _ in 0 \.\. 5 \{\s*\n?\s*inventory_add\(8\)/.test(pvpV);
+  check(vEnhStone, 'Chuẩn chung: V thưởng boss thế giới +5 Đá Cường Hóa khi ≥20000 dmg',
+    'pvp.v có inventory_add(8) × 5 (Đá Cường Hóa, shop id 8) + banner "+5 Đá Cường Hóa"');
+  // Mô phỏng thuần JS: bậc thưởng boss thế giới theo sát thương gây ra.
+  function worldBossFullReward(damage) {
+    if (damage >= 20000) return { gold: 5000, stone: 50, da: 5 };
+    if (damage >= 10000) return { gold: 2500, stone: 0, da: 0 };
+    if (damage >= 2000) return { gold: 1000, stone: 0, da: 0 };
+    return { gold: 0, stone: 0, da: 0 };
+  }
+  {
+    const r = worldBossFullReward(20000);
+    check(r.gold === 5000 && r.stone === 50 && r.da === 5,
+      'Boss TG (chuẩn chung): gây 20000 dmg → +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa',
+      `+${r.gold} vàng, +${r.stone} linh thạch, +${r.da} đá`);
+    check(worldBossFullReward(10000).gold === 2500 && worldBossFullReward(10000).stone === 0,
+      'Boss TG (chuẩn chung): gây 10000 dmg → +2500 vàng, chưa có đá', 'nửa thưởng, không đá');
+    check(worldBossFullReward(2000).gold === 1000, 'Boss TG (chuẩn chung): gây 2000 dmg → +1000 vàng', 'thưởng chia 5');
+    const r0 = worldBossFullReward(1999);
+    check(r0.gold === 0 && r0.stone === 0 && r0.da === 0, 'Boss TG (chuẩn chung): gây 1999 dmg → 0 (dưới ngưỡng)', 'dưới 2000 → 0');
+  }
+
+  // L4. Boss raid chuẩn chung vòng 3: Kim Thiềm Vương 20000 HP / 120s / 3 phase
+  // (nhóm 2 chốt thêm sau 3 chuẩn đầu — start_raid_boss dùng boss này cho raid,
+  // boss theo map vẫn giữ cho map thường).
+  check(/const raid_boss_max_hp = 20000/.test(battleMapV),
+    'Chuẩn chung: V raid boss Kim Thiềm Vương 20000 HP (raid_boss_max_hp)',
+    'battle_map.v có const raid_boss_max_hp = 20000');
+  check(/hb\.hp = raid_boss_max_hp/.test(battleMapV) && /hb\.max = raid_boss_max_hp/.test(battleMapV),
+    'Chuẩn chung: V start_raid_boss dùng boss 20000 HP cho raid',
+    'có hb.hp = hb.max = raid_boss_max_hp trong start_raid_boss');
+}
+
+// =====================================================================
+// K. Docs đi kèm (vòng 2 + 3)
 // =====================================================================
 console.log('\n== K. Docs ==');
 const doc = read(path.join(ROOT, 'docs', 'MONG_VO_LAM.md'));
@@ -946,6 +1127,9 @@ checkMissing(doc !== null && /## .*Battle/i.test(doc),
   doc ? (/## .*Battle/i.test(doc) ? 'có chương Battle' : 'chưa có chương Battle') : 'chưa có file docs');
 checkMissing(doc !== null && /thưởng ngày|Thưởng ngày/i.test(doc),
   'docs/MONG_VO_LAM.md ghi thưởng ngày PvP', doc ? (/thưởng ngày/i.test(doc) ? 'có nhắc thưởng ngày' : 'chưa nhắc "thưởng ngày"') : 'chưa có file docs');
+checkMissing(doc !== null && /chuẩn chung vòng 3|Chuẩn chung vòng 3/i.test(doc),
+  'docs/MONG_VO_LAM.md ghi chuẩn chung vòng 3 (Nộ Trảm tay / AoE 90 / boss TG +50 linh thạch + 5 Đá)',
+  doc ? (/chuẩn chung vòng 3/i.test(doc) ? 'có nhắc chuẩn chung vòng 3' : 'chưa nhắc "chuẩn chung vòng 3"') : 'chưa có file docs');
 const rootReadme = read(path.join(ROOT, 'README.md')) || '';
 checkMissing(/test-battle-mvl/.test(rootReadme),
   'README gốc ghi cách chạy tests/test-battle-mvl.js', /test-battle-mvl/.test(rootReadme) ? 'có nhắc test-battle-mvl.js' : 'chưa ghi test battle vòng 2');

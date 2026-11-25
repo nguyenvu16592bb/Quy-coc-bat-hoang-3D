@@ -21,22 +21,38 @@ xem **[docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md)**.
 
 **Battle vòng 2** (xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 3.12–3.15):
 formation 5 người (3 hàng tank/dps/healer), auto-battle (tự dùng skill khi đủ MP,
-tự uống đan khi HP < 30%), raid boss Cóc Xanh 3 phase (đổi phase ở 66%/33% HP,
-gọi quái con, AoE có cảnh báo), combo/nộ (+35% crit trong 12 giây) + damage log,
+tự uống đan khi HP < 25%), raid boss Cóc Xanh 3 phase (đổi phase ở 66%/33% HP,
+gọi 3 quái con mỗi lần đổi phase, AoE có cảnh báo 1,2s), combo (cửa sổ 3s) / nộ
+(Nộ Trảm tay + Bạo Linh Phù +35% crit trong 12 giây) + damage log 50 dòng,
 tốc độ x1/x2, tạm dừng/bỏ qua, cường hóa tối đa +10 (thất bại tối đa −1 cấp) +
 6 loại ngọc, PvP 8 đối thủ (+25/−15, floor 0) + thưởng ngày, thị trấn Song Ma
 (vào tắt spawn, ra bật lại), 4 panel mới (Battle/Town/Enhance/PvP).
 Chuẩn số liệu vòng 2 đã chốt: pet 6, bang 4, sự kiện 5, chợ 12 món, trang bị 13 món,
 vàng khởi đầu 455 / bạc khởi đầu 40932 — **đã khớp cả hai bản**
-(harness vòng 1: 76 PASS / 0 FAIL).
-⚠️ Hai bản battle vòng 2 **chưa giống hệt nhau**: còn 6 lệch số liệu
-(đội hình mặc định, ngưỡng uống đan auto, quái con raid, cửa sổ combo,
-số dòng damage log, roll cường hóa) + tốc độ/tạm dừng/bỏ qua và thưởng ngày PvP
-mới chỉ có ở HTML, chưa có ở V — kiểm tra bằng `tests/test-battle-mvl.js`
-(harness vòng 2: 219 PASS / 6 FAIL / 4 MISSING, xem mục Kiểm thử bên dưới).
+(6 lệch battle vòng 2 đã khớp: đội hình `{0,1,2,5,7}`, ngưỡng uống đan 25%,
+quái con raid [3,3], combo 3s, log 50 dòng, roll cường hóa có `attempts×29` cả hai bản;
+thưởng ngày PvP + tốc độ/tạm dừng/bỏ qua phía V cũng đã có).
+**Chuẩn chung vòng 3** (docs mục 3.17.2): nộ khí = Nộ Trảm tay
+(dmg = công×4 + combo×10, AoE 6m), AoE raid = 90 dmg (cả hero + đồng đội),
+boss thế giới +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa, boss raid
+Kim Thiềm Vương 20000 HP / 120s / 3 phase — **đã hạ cánh cả hai bản**
+(harness battle mục L: 0 FAIL, chỉ còn 1 MISSING theo thiết kế).
 
-Kiểm thử: `node tests/test-mongvolam.js` (vòng 1) và `node tests/test-battle-mvl.js`
-(vòng 2) — xem mục Kiểm thử bên dưới và mục 6 trong docs trên.
+**Module vòng 3** (xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 3.16–3.17):
+HTML gốc 3741 dòng đã tách thành shell `velo/web/qu_c_c_b_t_hoang_3d.html`
+(**358 dòng**, body 334 dòng — không phải ~120 dòng như ước lượng ban đầu) +
+`velo/web/quycoc.css` (191 dòng) + `velo/web/js/00-state.js` (208) /
+`01-world.js` (755) / `02-combat.js` (576) / `03-battle.js` (420) /
+`04-mvl.js` (733) / `05-ui.js` (570) — tổng **3811 dòng**, script thường
+(không ES module), namespace chung `window.QC`. Nhóm 2 đang hạ cánh
+`velo/web/js/06-expand.js` (tọa kỵ 6, thời trang 8, VIP 6 cấp, bang chiến 19–20h,
+môn phái chiến, thư/chat, xếp hạng 20 NPC, đổi đội trưởng F1/F2/F3) — shell đã nạp
+06 và thêm 5 panel mới (tổng 13 panel); file V mới `mounts.v`/`fashion.v`/
+`guildwar.v`/`vip.v` chưa có.
+
+Kiểm thử: `node tests/test-mongvolam.js` (vòng 1) , `node tests/test-battle-mvl.js`
+(vòng 2) và `node tests/test-modules-mvl.js` (vòng 3, module mới) — xem mục Kiểm thử
+bên dưới và mục 6 trong docs trên.
 
 ## Chạy game
 
@@ -60,25 +76,32 @@ Hướng dẫn phím + build lại: xem [velo/quycoc3d/README.md](velo/quycoc3d/
 node tests/test-mongvolam.js    # vòng 1 (môn phái, kinh tế, pet, bang, nhiệm vụ, PvP, lưu game)
 node tests/test-battle-mvl.js   # vòng 2 (formation 5, auto-battle, raid boss 3 phase,
                                 # combo/nộ, damage log, tốc độ/tạm dừng/bỏ qua,
-                                # enhance/gem, PvP UI, town safe, panel mới)
+                                # enhance/gem, PvP UI, town safe, panel mới,
+                                # chuẩn chung vòng 3)
+node tests/test-modules-mvl.js  # vòng 3 (cấu trúc module shell + css + js/00–06,
+                                # không trùng tên hàm, state/data khớp,
+                                # hệ thống mới nhóm 2, hồi quy battle cũ)
+node --check velo/web/js/00-state.js velo/web/js/01-world.js velo/web/js/02-combat.js \
+  velo/web/js/03-battle.js velo/web/js/04-mvl.js velo/web/js/05-ui.js velo/web/js/06-expand.js
 ```
 
-Cả hai đều chạy bằng `node` thuần, không cần thư viện ngoài; exit 0 = không có FAIL
+Cả ba harness đều chạy bằng `node` thuần, không cần thư viện ngoài; exit 0 = không có FAIL
 (MISSING được phép — hệ thống chưa có trong code thì báo MISSING chứ không
-fail cứng). Kết quả lần chạy cuối (2026-11-25 ~05:03):
-vòng 1 **76 PASS / 0 FAIL / 0 MISSING** (chuẩn MAX vòng 2 đã khớp cả hai bản);
-vòng 2 **219 PASS / 6 FAIL / 4 MISSING** (6 FAIL đều là lệch số liệu HTML↔V
-của battle vòng 2, cần chốt số chung mới về 0 FAIL; 4 MISSING là tốc độ/tạm dừng/
-bỏ qua + thưởng ngày PvP phía V).
+fail cứng). Kết quả lần chạy cuối vòng 3 (2026-11-25, sau khi cập nhật docs):
+vòng 1 **90 PASS / 0 FAIL / 0 MISSING**; vòng 2 **255 PASS / 0 FAIL / 1 MISSING**;
+vòng 3 (module) **113 PASS / 0 FAIL / 0 MISSING**; `node --check` 00–06 OK.
+Smoke server: `cd velo/web && python3 -m http.server 8123` rồi curl shell + css +
+từng module — đều trả 200.
 Chi tiết từng assert + số đo thật: xem [docs/MONG_VO_LAM.md](docs/MONG_VO_LAM.md) mục 6.
 
-## Mở panel mới (battle vòng 2)
+## Mở panel mới (battle vòng 2 + hệ thống mới vòng 3)
 
-- **Bản HTML:** 8 panel mở bằng thanh dưới (Túi / Môn Phái / Hoạt Động / Sự Kiện /
-  Chợ / Bang Hội / Đội Hình / Đ. Trường) + nút **🏯 Thị Trấn** vào khu an toàn
+- **Bản HTML:** 13 panel mở bằng thanh dưới — 8 panel gốc (Túi / Môn Phái / Hoạt Động /
+  Sự Kiện / Chợ / Bang Hội / Đội Hình / Đ. Trường) + 5 panel mới vòng 3
+  (Tọa Kỵ / Bang Chiến / VIP / Thư / Xếp Hạng) + nút **🏯 Thị Trấn** vào khu an toàn
   (3 NPC: Trưởng Môn, Chủ Sạp, Thợ Rèn). Battle UI là **thanh battle bar** trên màn
   hình (🤖 Tự đánh / ⏸ Tạm dừng / ⏭ Bỏ qua / ⚡ Tốc độ x1/x2 / Combo / Nộ Trảm /
   damage log / thanh HP raid boss), không có `panel-battle` riêng.
 - **Bản V:** panel nằm trong `velo/quycoc3d/assets/scenes/main.scene` (node
   `BattlePanel` / `TownPanel` / `EnhancePanel` / `PvpPanel`, nối qua `hud.v` /
-  `BattlePanelUI` / `TownPanelUI`); 4 node này đã có trong scene (802 dòng, 141 node).
+  `BattlePanelUI` / `TownPanelUI`); 4 node này đã có trong scene (835 dòng, 145 node).

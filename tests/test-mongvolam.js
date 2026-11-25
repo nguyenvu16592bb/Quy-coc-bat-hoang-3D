@@ -4,6 +4,15 @@
 // Chạy:  node tests/test-mongvolam.js        (từ thư mục gốc repo)
 // Thoát: 0 = không có FAIL (MISSING được phép), 1 = có ít nhất 1 FAIL.
 //
+// VÒNG 3 — MODULE (2026-11-25): HTML gốc 3741 dòng đã tách thành shell
+// `velo/web/qu_c_c_b_t_hoang_3d.html` (358 dòng: body 334 dòng + link CSS +
+// CDN three.js + 6 tag <script src="js/0*.js"> 00→05, script thường, không
+// ES module) + `velo/web/quycoc.css` + `velo/web/js/00-state.js … 05-ui.js`
+// (+ `js/06-expand.js` của nhóm 2, có thể chưa xong). Mọi regex scan dưới đây
+// chạy trên `html` = nội dung GỘP (shell + css + các module theo đúng thứ tự
+// nạp 00→05→06), nên mọi kỳ vọng số liệu chuẩn MAX vòng 2 giữ nguyên:
+// pet 6, bang 4, sự kiện 5, chợ 12, trang bị 13, vàng 455/bạc 40932.
+//
 // NGUYÊN TẮC:
 //  - Mọi số liệu đều đọc từ FILE THẬT tại thời điểm chạy bằng regex scan.
 //    Harness KHÔNG hardcode kết quả đếm (chỉ hardcode KỲ VỌNG thiết kế:
@@ -18,8 +27,14 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = path.join(ROOT, 'velo', 'web', 'qu_c_c_b_t_hoang_3d.html');
+const WEBDIR = path.join(ROOT, 'velo', 'web');
+const HTML = path.join(WEBDIR, 'qu_c_c_b_t_hoang_3d.html'); // shell vòng 3 (358 dòng)
+const CSS = path.join(WEBDIR, 'quycoc.css');
+const JSDIR = path.join(WEBDIR, 'js');
 const VDIR = path.join(ROOT, 'velo', 'quycoc3d');
+
+// Thứ tự nạp module trong shell (00→05 bắt buộc, 06 của nhóm 2: có thể chưa xong).
+const MODULE_ORDER = ['00-state.js', '01-world.js', '02-combat.js', '03-battle.js', '04-mvl.js', '05-ui.js', '06-expand.js'];
 
 let pass = 0, fail = 0, missing = 0;
 const results = [];
@@ -42,6 +57,25 @@ function checkMissing(cond, name, detail) {
 function read(p) {
   try { return fs.readFileSync(p, 'utf8'); } catch (e) { return null; }
 }
+// Đếm dòng theo kiểu `wc -l` (file kết thúc bằng \n thì dòng cuối không tính thêm).
+function lineCount(text) {
+  if (text === null || text === undefined) return 0;
+  const n = text.split('\n').length;
+  return text.endsWith('\n') ? n - 1 : n;
+}
+// --- Loader vòng 3: đọc shell + css + từng module JS, gộp theo thứ tự nạp.
+// `shell` giữ riêng để kiểm tra cấu trúc shell; `html` là nội dung GỘP mà
+// mọi regex scan phía dưới dùng (thay cho 1 file HTML duy nhất vòng 1–2).
+// Module nào chưa có file (vd. 06-expand.js của nhóm 2) thì bỏ qua, không crash.
+const shell = read(HTML);
+const cssText = read(CSS);
+const jsParts = {};
+for (const m of MODULE_ORDER) {
+  const t = read(path.join(JSDIR, m));
+  if (t !== null) jsParts[m] = t;
+}
+const html = [shell, cssText, ...MODULE_ORDER.map((m) => jsParts[m]).filter(Boolean)]
+  .filter((s) => s !== null && s !== undefined).join('\n');
 function vFiles() {
   try {
     return fs.readdirSync(VDIR).filter((f) => f.endsWith('.v'))
@@ -134,14 +168,48 @@ function countStringsInArrayBlock(text, startRe) {
 const cross = {};
 
 // =====================================================================
-// A. HTML — velo/web/qu_c_c_b_t_hoang_3d.html
+// A. HTML + module vòng 3 — shell + quycoc.css + js/00–05 (+06 của nhóm 2)
+//    (`html` ở đây là nội dung GỘP shell + css + module, xem loader ở đầu file)
 // =====================================================================
-console.log('\n== A. HTML (velo/web/qu_c_c_b_t_hoang_3d.html) ==');
-const html = read(HTML);
-if (html === null) {
-  report('FAIL', 'HTML file tồn tại', 'không đọc được ' + HTML);
+console.log('\n== A. HTML + module vòng 3 (shell + js/00–05) ==');
+if (shell === null) {
+  report('FAIL', 'Shell HTML tồn tại (velo/web/qu_c_c_b_t_hoang_3d.html)', 'không đọc được ' + HTML);
 } else {
-  check(html.length > 50000, 'HTML có nội dung đầy đủ (>50KB)', `${html.length} bytes, ${html.split('\n').length} dòng`);
+  // A0. Shell vòng 3: 358 dòng (body 334 dòng — KHÔNG phải ~120 dòng như ước
+  // lượng ban đầu), nạp đủ module 00→05 theo đúng thứ tự, không còn block
+  // <script> inline dài, CSS đã tách ra quycoc.css.
+  const shellLines = lineCount(shell);
+  // Shell gốc tách module là 358 dòng (body 334 dòng — KHÔNG phải ~120 dòng
+  // như ước lượng ban đầu). Nhóm 2 đang nối 06-expand.js vào shell nên số
+  // dòng có thể tăng — chỉ kiểm tra khoảng, không khóa cứng 358.
+  check(shellLines >= 358 && shellLines <= 450, 'Shell vòng 3 đúng cỡ tách module (gốc 358 dòng, body 334 dòng)', `${shellLines} dòng`);
+  const scriptSrcs = [...shell.matchAll(/<script\s+src="js\/(\d\d-[a-z]+\.js)"><\/script>/g)].map((m) => m[1]);
+  check(JSON.stringify(scriptSrcs.slice(0, 6)) === JSON.stringify(['00-state.js', '01-world.js', '02-combat.js', '03-battle.js', '04-mvl.js', '05-ui.js'])
+    && (scriptSrcs.length === 6 || (scriptSrcs.length === 7 && scriptSrcs[6] === '06-expand.js')),
+    'Shell nạp đủ module 00→05 theo đúng thứ tự (06 sau 05 khi nhóm 2 nối xong)', `nạp: ${scriptSrcs.join(' → ') || 'không có'}`);
+  check(!/<script(?![^>]*src=)/.test(shell), 'Shell không còn block <script> inline (chỉ còn <script src>)', 'chỉ có script src');
+  check(!/<style[\s>]/.test(shell) && /<link rel="stylesheet" href="quycoc\.css">/.test(shell),
+    'Shell không còn <style> inline, CSS tách ra quycoc.css', 'link quycoc.css');
+  check(cssText !== null && lineCount(cssText) === 191, 'quycoc.css tồn tại, đúng 191 dòng', cssText ? `${lineCount(cssText)} dòng` : 'chưa có file');
+  const EXPECT_LINES = { '00-state.js': 208, '01-world.js': 755, '02-combat.js': 576, '03-battle.js': 420, '04-mvl.js': 733, '05-ui.js': 570 };
+  // Nhóm 2 đang nối 06 nên 03/05 có thể tăng so với số gốc — chỉ kiểm tra
+  // khoảng cho 03/05, khóa cứng các file còn lại.
+  const MIN_LINES = { '03-battle.js': 420, '05-ui.js': 570 };
+  for (const m of MODULE_ORDER.slice(0, 6)) {
+    if (jsParts[m] === undefined) {
+      report('FAIL', `Module js/${m} tồn tại`, 'chưa có file');
+    } else if (MIN_LINES[m] !== undefined) {
+      check(lineCount(jsParts[m]) >= MIN_LINES[m], `Module js/${m} đủ cỡ gốc ${MIN_LINES[m]} dòng trở lên`, `${lineCount(jsParts[m])} dòng`);
+    } else {
+      check(jsParts[m] !== undefined && lineCount(jsParts[m]) === EXPECT_LINES[m], `Module js/${m} tồn tại, đúng ${EXPECT_LINES[m]} dòng`, jsParts[m] ? `${lineCount(jsParts[m])} dòng` : 'chưa có file');
+    }
+  }
+  checkMissing(jsParts['06-expand.js'] !== undefined, 'Module js/06-expand.js của nhóm 2 (tọa kỵ/thời trang/bang chiến/VIP)',
+    jsParts['06-expand.js'] ? `${lineCount(jsParts['06-expand.js'])} dòng` : 'nhóm 2 chưa xong — báo MISSING, không fail');
+  check(/window\.QC = window\.QC \|\| \{\}/.test(jsParts['00-state.js'] || ''),
+    'Namespace chung window.QC được khởi tạo ở 00-state.js', 'có window.QC = window.QC || {}');
+
+  check(html.length > 50000, 'Web gộp (shell + css + module) có nội dung đầy đủ (>50KB)', `${html.length} bytes, ${lineCount(html)} dòng`);
 
   // A1. Thanh dưới kiểu Mộng Võ Lâm: 6 panel.
   const BOTTOM_PANELS = ['Túi', 'Môn Phái', 'Hoạt Động', 'Sự Kiện', 'Chợ', 'Bang Hội'];
@@ -456,6 +524,9 @@ console.log('\n== F. Docs ==');
 const doc = read(path.join(ROOT, 'docs', 'MONG_VO_LAM.md'));
 checkMissing(doc !== null && doc.length > 5000, 'docs/MONG_VO_LAM.md tồn tại và có nội dung dài',
   doc ? `${doc.length} ký tự` : 'chưa có file');
+checkMissing(doc !== null && /## .*Module/i.test(doc),
+  'docs/MONG_VO_LAM.md có chương Module vòng 3 (bảng module 00–05 + shell + css)',
+  doc ? (/## .*Module/i.test(doc) ? 'có chương Module' : 'chưa có chương Module') : 'chưa có file docs');
 const rootReadme = read(path.join(ROOT, 'README.md')) || '';
 check(/velo\/web\/qu_c_c_b_t_hoang_3d\.html/.test(rootReadme),
   'README gốc ghi đúng vị trí file HTML (velo/web/)', 'có link velo/web/qu_c_c_b_t_hoang_3d.html');

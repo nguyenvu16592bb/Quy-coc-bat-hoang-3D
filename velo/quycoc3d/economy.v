@@ -226,9 +226,22 @@ fn spend_stones(n int) bool {
 
 // inventory_add / inventory_has / inventory_remove: the bag holds item ids
 // (shop ids and equipment ids share the same bag).
-fn inventory_add(id int) {
+// Vòng 3: túi có giới hạn ô thật = số loại đồ khác nhau tối đa (vip_bag_cap,
+// cơ bản 30 ô + VIP). Loại đã có thì luôn nhận thêm được; loại mới khi túi
+// đầy thì bị từ chối (trả về false) để VIP thêm ô có ý nghĩa thật.
+fn inventory_add(id int) bool {
 	mut s := gs()
+	if s.inventory.index(id) < 0 {
+		mut seen := map[int]bool{}
+		for other in s.inventory {
+			seen[other] = true
+		}
+		if seen.len >= vip_bag_cap() {
+			return false
+		}
+	}
 	s.inventory << id
+	return true
 }
 
 fn inventory_has(id int) bool {

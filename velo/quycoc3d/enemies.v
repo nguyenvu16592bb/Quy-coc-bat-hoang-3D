@@ -604,7 +604,11 @@ pub fn (mut e EnemyAI) start() {
 }
 
 pub fn (mut e EnemyAI) update(dt f32) {
-	hp := hero_pos(e.scene()) or { return }
+	// chuẩn chung vòng 3 (tank aggro thật): tank đang khiêu khích thì quái
+	// đuổi theo vị trí của tank (taunt_target_pos, battle_map.v); không có
+	// taunt thì vẫn đuổi theo leader như cũ. Đòn đánh vẫn trừ HP chung của
+	// đội (enemy_attack) — aggro đổi MỤC TIÊU DI CHUYỂN, không đổi bể HP.
+	hp := taunt_target_pos(e.scene()) or { hero_pos(e.scene()) or { return } }
 	hn := hero(e.scene()) or { return }
 	if !hn.active {
 		return
@@ -666,6 +670,9 @@ fn enemy_attack(dmg int, from core.Vec3) {
 }
 
 // on_enemy_killed: kill count, map progress, XP (tier scaled).
+// Vòng 3: rơi đồ khi giết quái — tỉ lệ gốc 35% + % rơi đồ của VIP
+// (vip_drop_pct, vip.v); rơi Linh Chi Thảo (shop id 5) hoặc Đá Cường Hóa
+// (shop id 8). Túi đầy loại mới thì inventory_add từ chối, không crash.
 fn on_enemy_killed(boss bool, exp int) {
 	mut s := gs()
 	s.kills++
@@ -673,6 +680,11 @@ fn on_enemy_killed(boss bool, exp int) {
 		s.map_kills++
 	}
 	gain_exp(exp)
+	drop_chance := f32(0.35) + f32(vip_drop_pct()) / f32(100)
+	if rand.f32() < drop_chance {
+		drop_id := if rand.f32() < 0.5 { 5 } else { 8 }
+		inventory_add(drop_id)
+	}
 	publish()
 }
 

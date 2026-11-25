@@ -49,6 +49,27 @@ pub mut:
 	quest_progress      []int
 	quest_done          []bool
 	daily_count         []int
+	// ---- vòng 3: tọa kỵ / thời trang / bang chiến / môn phái chiến / VIP / thư-chat ----
+	mount_id            int
+	mount_owned         []bool
+	mount_level         []int
+	mount_riding        bool
+	fashion_id          int
+	fashion_owned       []bool
+	vip_level           int
+	vip_total_nap       int
+	guildwar_score      int
+	guildwar_wins       int
+	guildwar_losses     int
+	guildwar_date       string
+	sectwar_score       int
+	sectwar_wins        int
+	sectwar_losses      int
+	sectwar_date        string
+	mail                []MailEntry
+	mail_unread         int
+	chat_log            []string
+	chat_guild_log      []string
 }
 
 // collect_save: snapshot the current game state into a SaveData.
@@ -95,6 +116,37 @@ fn collect_save() SaveData {
 	}
 	for i in 0 .. daily_activities.len {
 		d.daily_count << s.daily_count[i]
+	}
+	// vòng 3: tọa kỵ / thời trang / bang chiến / môn phái chiến / VIP / thư-chat
+	d.mount_id = s.mount_id
+	for i in 0 .. mounts.len {
+		d.mount_owned << s.mount_owned[i]
+		d.mount_level << s.mount_level[i]
+	}
+	d.mount_riding = s.mount_riding
+	d.fashion_id = s.fashion_id
+	for i in 0 .. fashions.len {
+		d.fashion_owned << s.fashion_owned[i]
+	}
+	d.vip_level = s.vip_level
+	d.vip_total_nap = s.vip_total_nap
+	d.guildwar_score = s.guildwar_score
+	d.guildwar_wins = s.guildwar_wins
+	d.guildwar_losses = s.guildwar_losses
+	d.guildwar_date = s.guildwar_date
+	d.sectwar_score = s.sectwar_score
+	d.sectwar_wins = s.sectwar_wins
+	d.sectwar_losses = s.sectwar_losses
+	d.sectwar_date = s.sectwar_date
+	for m in s.mail {
+		d.mail << m
+	}
+	d.mail_unread = s.mail_unread
+	for l in s.chat_log {
+		d.chat_log << l
+	}
+	for l in s.chat_guild_log {
+		d.chat_guild_log << l
 	}
 	return d
 }
@@ -201,6 +253,66 @@ fn apply_save(d SaveData) {
 		if i < d.daily_count.len {
 			s.daily_count[i] = d.daily_count[i]
 		}
+	}
+	// vòng 3: tọa kỵ / thời trang / bang chiến / môn phái chiến / VIP / thư-chat
+	if d.mount_id >= -1 && d.mount_id < mounts.len {
+		s.mount_id = d.mount_id
+	}
+	for i in 0 .. mounts.len {
+		if i < d.mount_owned.len {
+			s.mount_owned[i] = d.mount_owned[i]
+		}
+		if i < d.mount_level.len && d.mount_level[i] >= 0 && d.mount_level[i] <= mount_max_lv {
+			s.mount_level[i] = d.mount_level[i]
+		}
+	}
+	s.mount_riding = d.mount_riding && s.mount_id >= 0 && s.mount_owned[s.mount_id]
+	if d.fashion_id >= -1 && d.fashion_id < fashions.len {
+		s.fashion_id = d.fashion_id
+	}
+	for i in 0 .. fashions.len {
+		if i < d.fashion_owned.len {
+			s.fashion_owned[i] = d.fashion_owned[i]
+		}
+	}
+	if d.vip_level >= 0 && d.vip_level < vip_levels.len {
+		s.vip_level = d.vip_level
+	}
+	if d.vip_total_nap >= 0 {
+		s.vip_total_nap = d.vip_total_nap
+	}
+	if d.guildwar_score >= 0 {
+		s.guildwar_score = d.guildwar_score
+	}
+	if d.guildwar_wins >= 0 {
+		s.guildwar_wins = d.guildwar_wins
+	}
+	if d.guildwar_losses >= 0 {
+		s.guildwar_losses = d.guildwar_losses
+	}
+	s.guildwar_date = d.guildwar_date
+	if d.sectwar_score >= 0 {
+		s.sectwar_score = d.sectwar_score
+	}
+	if d.sectwar_wins >= 0 {
+		s.sectwar_wins = d.sectwar_wins
+	}
+	if d.sectwar_losses >= 0 {
+		s.sectwar_losses = d.sectwar_losses
+	}
+	s.sectwar_date = d.sectwar_date
+	s.mail = []MailEntry{}
+	for m in d.mail {
+		s.mail << m
+	}
+	s.mail_unread = mail_unread_count()
+	s.chat_log = []string{}
+	for l in d.chat_log {
+		s.chat_log << l
+	}
+	s.chat_guild_log = []string{}
+	for l in d.chat_guild_log {
+		s.chat_guild_log << l
 	}
 	apply_sect_buff()
 	apply_equip_stats()

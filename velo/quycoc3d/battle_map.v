@@ -32,16 +32,39 @@ import velo.render3d
 //  * apply_hit() rolls crit/variance internally and returns nothing, so the
 //    damage log records the raw damage handed to it (pre-variance), and
 //    director-triggered skill casts log the skill name, not a damage number.
+//
+//  CHUẨN CHUNG VÒNG 3 (1 chuẩn duy nhất, khớp HTML js/03-battle.js — nhóm 2):
+//  1. Nộ khí: đầy 100 nộ → bấm Nộ Trảm TAY (phím T / battle_rage_slash):
+//     dmg = Công x4 + Combo x10, AoE 6m, sau đó nộ về 0, combo về 0.
+//     KHÔNG tự bùng +45% 6s nữa (khối auto-burst cũ + hằng battle_rage_burst_s
+//     đã gỡ; aura vẫn tồn tại cho skill Kim Cang Hộ Thể ở combat.v).
+//  2. Boss raid: Kim Thiềm Vương 20000 HP / 120s / 3 phase (66%/33%,
+//     mỗi phase gọi 3 quái con) — start_raid_boss dùng boss này cho raid,
+//     boss theo map vẫn giữ cho map thường.
+//  3. AoE raid: 90 dmg cố định (raid_aoe_dmg), cả đội (HP chung).
+//  4. Thưởng boss thế giới (mốc >=20000 dmg): +5000 vàng + 50 linh thạch
+//     + 5 Đá Cường Hóa — xem world_boss_fight ở pvp.v.
+//  5. Tank aggro thật: tank khiêu khích (battle_taunt, 6s) → EnemyAI đuổi
+//     theo slot tank (taunt_target_pos); threat cao nhất = mục tiêu.
+//     Không có taunt đang chạy → quái vẫn đuổi theo leader như cũ.
 // ============================================================================
 
 // ---- tuning constants (no unexplained magic numbers) ----
 const battle_party_max = 5 // field members in a full formation (roster stays 8)
 const battle_roster_max = 8
 const battle_combo_window = f32(3.0) // seconds: a hit inside the window keeps the combo (chuẩn chung vòng 2, khớp HTML comboTimer=3)
-const battle_rage_max = 100 // rage (nộ khí) caps here, then bursts (see below)
+const battle_rage_max = 100 // rage (nộ khí) caps here, then waits for a manual Nộ Trảm (chuẩn chung vòng 3)
 const battle_rage_per_hit = 6 // rage gained per landed hit
 const battle_rage_per_kill = 15 // rage gained per kill
-const battle_rage_burst_s = f32(6.0) // full-rage burst: +45% damage (aura) for 6s
+const battle_rage_slash_mult = 4 // Nộ Trảm: Công x4 (chuẩn chung vòng 3, khớp HTML castRageSkill)
+const battle_rage_slash_combo = 10 // Nộ Trảm: +10 mỗi combo (chuẩn chung vòng 3)
+const battle_rage_slash_range = f32(6.0) // Nộ Trảm: AoE 6m quanh leader
+const battle_taunt_duration_s = f32(6.0) // khiêu khích giữ aggro 6 giây
+const battle_taunt_threat = 200 // threat cộng thêm khi khiêu khích
+const battle_taunt_cd_s = f32(8.0) // tank tự khiêu khích lại sau 8 giây
+const raid_boss_max_hp = 20000 // Kim Thiềm Vương: 20000 HP (chuẩn chung vòng 3)
+const raid_time_limit_s = f32(120.0) // raid giới hạn 120 giây (chuẩn chung vòng 3)
+const raid_aoe_dmg = 90 // AoE raid: 90 dmg cố định (chuẩn chung vòng 3)
 const battle_log_max = 50 // damage-log lines kept in memory (newest last; chuẩn chung vòng 2, khớp HTML)
 const battle_heal_threshold = f32(0.5) // healer acts when party HP is below 50%
 const battle_heal_cost_mp = 20 // MP the healer spends per heal
@@ -162,6 +185,82 @@ fn battle_top_threat_name() string {
 	return '${party_hero_name(slot)} (${party_role(slot)})'
 }
 
+// battle_rage_slash: Nộ Trảm tay (chuẩn chung vòng 3) — đầy 100 nộ thì bấm:
+// dmg = Công x4 + Combo x10 lên mọi quái trong 6m quanh leader, sau đó nộ
+// về 0, combo về 0. Trả về false khi nộ chưa đầy hoặc không có quái gần
+// (không trừ nộ trong 2 trường hợp đó).
+fn battle_rage_slash(sc &core.Scene) bool {
+	mut s := gs()
+	if s.battle_rage < battle_rage_max {
+		show_banner('Nộ khí chưa đầy! Đánh trúng để tích nộ (đang ${s.battle_rage}/100).')
+		return false
+	}
+	hp := hero_pos(sc) or { return false }
+	raw := f32(s.atk * battle_rage_slash_mult + s.battle_combo * battle_rage_slash_combo)
+	mut hits := 0
+	for mut e in enemies_of(sc) {
+		if e.position().distance(hp) <= battle_rage_slash_range {
+			apply_hit(mut e, raw, true, 10)
+			hits++
+		}
+	}
+	if hits == 0 {
+		show_banner('Không có quái trong vòng 6m để dùng Nộ Trảm!')
+		return false
+	}
+	s.battle_rage = 0
+	s.battle_combo = 0
+	s.battle_combo_t = 0
+	if mut world := sc.find('World') {
+		spawn_whirlwind(mut world, hp, 6, 0.7, false)
+	}
+	battle_log_add('Nộ Trảm! Công x4 + 10/Combo lên ${hits} quái trong 6m.')
+	show_banner('Nộ Trảm! Công x4 + 10/Combo!')
+	publish()
+	return true
+}
+
+// battle_taunt: tank ở field slot khiêu khích — quái ưu tiên đuổi theo tank
+// trong battle_taunt_duration_s giây (chuẩn chung vòng 3). Cộng ngay
+// battle_taunt_threat threat để tank thành mục tiêu cao nhất. Chỉ tank mới
+// khiêu khích được; slot sai hoặc đã có taunt mạnh hơn thì không làm gì.
+fn battle_taunt(slot int) {
+	mut s := gs()
+	if slot < 0 || slot >= battle_party_max {
+		return
+	}
+	if party_role(slot) != 'tank' {
+		return
+	}
+	s.taunt_slot = slot
+	s.taunt_active = true
+	s.taunt_t = battle_taunt_duration_s
+	battle_add_threat(slot, battle_taunt_threat)
+	battle_log_add('${party_hero_name(slot)} khiêu khích! Quái dồn vào tank (6 giây).')
+	show_banner('${party_hero_name(slot)} KHIÊU KHÍCH! Quái đang dồn vào tank!')
+	publish()
+}
+
+// taunt_target_pos: vị trí quái phải đuổi theo khi có taunt đang chạy —
+// vị trí của node tank. Trả về none khi không có taunt / tank không hợp lệ
+// (khi đó EnemyAI vẫn đuổi theo leader như cũ).
+fn taunt_target_pos(sc &core.Scene) ?core.Vec3 {
+	s := gs()
+	if !s.taunt_active || s.taunt_t <= 0 {
+		return none
+	}
+	if s.taunt_slot < 0 || s.taunt_slot >= s.party.len {
+		return none
+	}
+	mut n := s.party[s.taunt_slot]
+	if n == unsafe { nil } || !n.active {
+		return none
+	}
+	_ = sc
+	tr := render3d.transform3d(mut n)
+	return tr.position
+}
+
 // toggle_auto_battle: flips auto-battle on/off (BattlePanel button / B key).
 fn toggle_auto_battle() {
 	mut s := gs()
@@ -278,6 +377,7 @@ pub mut:
 	cd      f32 @[hide]
 	heal_cd f32 @[hide]
 	taunt_t f32 @[hide]
+	taunt_cd f32 @[hide]
 }
 
 pub fn (mut c BattleCompanionAI) start() {
@@ -309,6 +409,15 @@ pub fn (mut c BattleCompanionAI) update(dt f32) {
 			if c.taunt_t <= 0 {
 				c.taunt_t = 1.0
 				battle_add_threat(c.slot, battle_taunt_per_sec)
+			}
+			// chuẩn chung vòng 3: tank tự khiêu khích mỗi 8s (chỉ khi chưa có
+			// taunt nào đang chạy) để quái thật sự dồn vào tank
+			c.taunt_cd -= dt
+			if c.taunt_cd <= 0 {
+				c.taunt_cd = battle_taunt_cd_s
+				if !s.taunt_active {
+					battle_taunt(c.slot)
+				}
 			}
 		}
 	}
@@ -369,9 +478,11 @@ pub fn (mut c BattleCompanionAI) update(dt f32) {
 
 // ---------- raid boss: 3 phases ----------
 
-// start_raid_boss: opens a raid — first completes the 5-hero formation, then
-// spawns the map boss (same spawn_monster boss path as WaveSpawner.spawn_boss)
-// plus 3 adds. The existing boss bar (ui_map.v) follows it via s.boss_ref.
+// start_raid_boss: mở raid Kim Thiềm Vương (chuẩn chung vòng 3: 20000 HP /
+// 120 giây / 3 giai đoạn) — dùng lại hình dạng boss của map hiện tại nhưng
+// máu tối đa được ép về 20000 và tên hiển thị là Kim Thiềm Vương; boss theo
+// map vẫn giữ nguyên cho map thường (WaveSpawner.spawn_boss không đổi).
+// Thêm 3 quái con lúc mở raid, như mỗi lần đổi phase.
 fn start_raid_boss() {
 	mut s := gs()
 	if s.raid_active {
@@ -394,12 +505,15 @@ fn start_raid_boss() {
 	}
 	s.raid_active = true
 	s.battle_phase = 1
-	if hb := n.get_component[Health]() {
+	s.raid_time_left = raid_time_limit_s
+	if mut hb := n.get_component[Health]() {
+		hb.hp = raid_boss_max_hp
+		hb.max = raid_boss_max_hp
 		s.battle_boss_hp = hb.hp
 		s.battle_boss_max = hb.max
 	}
-	show_banner('Raid Boss: ${boss_title(m.boss)} Giáng Lâm! (3 giai đoạn)')
-	battle_log_add('Raid Boss bắt đầu: ${boss_title(m.boss)}.')
+	show_banner('Raid Boss: Kim Thiềm Vương Giáng Lâm! (20000 HP / 120 giây / 3 giai đoạn)')
+	battle_log_add('Raid Boss bắt đầu: Kim Thiềm Vương, 20000 HP, 120 giây.')
 	publish()
 }
 
@@ -445,13 +559,27 @@ pub fn (mut d BattleDirector) update(dt f32) {
 			publish()
 		}
 	}
-	// full rage bursts into the +45% damage aura for 6s, then resets
-	if s.battle_rage >= battle_rage_max {
-		s.battle_rage = 0
-		s.aura = battle_rage_burst_s
-		show_banner('Nộ Khí Bùng Nổ! Cả đội +45% sát thương (6 giây).')
-		battle_log_add('Nộ khí đầy! Cả đội bùng nổ +45% sát thương.')
-		publish()
+	// Nộ khí đầy KHÔNG tự bùng nữa (chuẩn chung vòng 3): nộ chờ người chơi
+	// bấm T để Nộ Trảm tay (battle_rage_slash). Nộ giữ nguyên 100 cho tới
+	// khi dùng, combo vẫn rớt theo cửa sổ 3s như cũ.
+	// taunt countdown: hết 6s thì quái quay lại đuổi theo leader
+	if s.taunt_active {
+		s.taunt_t -= eff_dt
+		if s.taunt_t <= 0 {
+			s.taunt_t = 0
+			s.taunt_active = false
+			s.taunt_slot = 0
+			publish()
+		}
+	}
+	// raid countdown: hết 120s mà boss chưa chết thì raid thất bại
+	if s.raid_active {
+		s.raid_time_left -= eff_dt
+		if s.raid_time_left <= 0 {
+			s.raid_time_left = 0
+			d.end_raid(false)
+			return
+		}
 	}
 	// kills since last frame feed combo + rage + the log
 	if s.kills > d.last_kills {
@@ -612,10 +740,11 @@ fn (mut d BattleDirector) raid_set_phase(sc &core.Scene, p int) {
 }
 
 // raid_aoe_hit: the warned AoE lands on the whole party (shared HP pool).
-// Damage grows per phase; HP never drops below 15 (same floor as enemy_attack).
+// Chuẩn chung vòng 3: 90 dmg cố định, không tăng theo phase.
+// HP never drops below 15 (same floor as enemy_attack).
 fn (mut d BattleDirector) raid_aoe_hit(sc &core.Scene) {
 	mut s := gs()
-	dmg := 20 + d.raid_phase * 10
+	dmg := raid_aoe_dmg
 	s.hp -= dmg
 	if s.hp < 15 {
 		s.hp = 15
@@ -699,11 +828,16 @@ pub fn (mut u BattlePanelUI) start() {
 pub fn (mut u BattlePanelUI) update(dt f32) {
 	mut s := gs()
 	inp := u.input()
-	// B opens/closes the battle panel, Escape closes it
+	// B opens/closes the battle panel, Escape closes it, N casts Nộ Trảm tay
+	// (chuẩn chung vòng 3: đầy 100 nộ mới dùng được, xem battle_rage_slash;
+	// phím T đã dùng cho panel Đội ở ui_map.v nên Nộ Trảm dùng phím N)
 	if inp.was_pressed(.b) {
 		s.show_battle = !s.show_battle
 		s.show_map = false
 		s.show_team = false
+	}
+	if inp.was_pressed(.n) {
+		battle_rage_slash(u.scene())
 	}
 	if inp.was_pressed(.escape) {
 		s.show_battle = false

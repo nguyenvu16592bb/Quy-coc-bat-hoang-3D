@@ -553,7 +553,7 @@ node Main {
       }
       node Hint {
         Widget { align_left = true  left = 12  align_top = true  top = 414 }
-        Label { text = "Phím B mở/đóng panel. Nộ khí đầy (100) bùng nổ +45% sát thương."  size = 11  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
+        Label { text = "Phím B mở/đóng panel. Nộ khí đầy (100) bấm N để Nộ Trảm: Công x4 + 10/Combo, nộ về 0."  size = 11  color = [155, 231, 255]  shadow_color = [0, 0, 0, 170]  shadow_offset = [1, 1] }
       }
     }
     node TownPanel {

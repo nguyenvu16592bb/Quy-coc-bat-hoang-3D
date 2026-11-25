@@ -29,6 +29,8 @@ pub mut:
 
 // CompanionAI — follows the leader in a loose triangle and auto-attacks the
 // nearest beast. Companions are not targeted by enemies (the leader tanks).
+// Vòng 3: companion tank (slot 0-2) cũng tích threat như BattleCompanionAI
+// (chỉ khi là tank và có quái gần — không đổi hành vi khác).
 pub struct CompanionAI {
 	core.Component
 pub mut:
@@ -36,6 +38,7 @@ pub mut:
 	speed    f32 = 6.6
 	atk_mult f32 = 0.55
 	cd       f32 @[hide]
+	taunt_t  f32 @[hide]
 }
 
 pub fn (mut c CompanionAI) start() {
@@ -66,6 +69,17 @@ pub fn (mut c CompanionAI) update(dt f32) {
 	}
 	// attack the closest beast around this companion
 	c.cd -= dt
+	// chuẩn chung vòng 3: companion tank tích threat 10/giây khi có quái gần
+	// (như BattleCompanionAI) — threat cao nhất mới thành mục tiêu khiêu khích
+	if party_role(c.slot) == 'tank' {
+		if _ := nearest_enemy_from(sc, tr.position, 12) {
+			c.taunt_t -= dt
+			if c.taunt_t <= 0 {
+				c.taunt_t = 1.0
+				battle_add_threat(c.slot, battle_taunt_per_sec)
+			}
+		}
+	}
 	if e0 := nearest_enemy_from(sc, tr.position, 3.6) {
 		mut e := e0
 		mut et := e.position() - tr.position
@@ -183,8 +197,9 @@ fn switch_leader(i int) {
 	s.leader = i
 	h := hero_def(s.hero_ids[i])
 	if mut hc := nxt.get_component[HeroController]() {
-		hc.speed = 7 * h.spd_mult
-		hc.aura_speed = 8.8 * h.spd_mult
+		// vòng 3: giữ hệ số tốc độ tọa kỵ khi đổi đội trưởng (mounts.v)
+		hc.speed = 7 * h.spd_mult * mount_speed_mult()
+		hc.aura_speed = 8.8 * h.spd_mult * mount_speed_mult()
 	}
 	apply_hero_stats()
 	show_banner('Dẫn đầu: ${h.name} - ${h.title}')

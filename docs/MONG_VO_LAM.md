@@ -541,6 +541,92 @@ dmg = công×4 + combo×10, V tự bùng nổ +45% dmg 6s); boss raid (HTML Kim 
 đá thưởng boss thế giới (HTML +5 Đá Cường Hóa, V +50 linh thạch); chỉ số phái,
 phí đổi phái, nhập phái, cơ chế lưu, boss bang (Kim Thiềm Vương vs Ma Tôn Hộ Pháp).
 
+> **Cập nhật vòng 3 (2026-11-25):** cả 4 lệch cơ chế trên đã có **chuẩn chung
+> vòng 3** (xem §3.17.2) và **đã hạ cánh cả hai bản**: nộ khí = Nộ Trảm tay,
+> AoE raid = 90 dmg, đá boss thế giới = +50 linh thạch **+** 5 Đá Cường Hóa,
+> boss raid = Kim Thiềm Vương 20000 HP / 120s / 3 phase. Harness battle mục L
+> về 0 FAIL (chỉ còn 1 MISSING theo thiết kế: HTML không có `panel-battle` riêng).
+
+---
+
+## 3.16. Module vòng 3 — tách HTML 3741 dòng thành shell + css + js/00–05
+
+Nhóm 1 tách xong, đã verify `node --check` 6/6 module OK. HTML gốc 3741 dòng
+được tách thành shell + CSS + 6 module JS (script thường, **không ES module**,
+global scope chia sẻ, namespace chung `window.QC`). Backup HTML gốc:
+`/tmp/quycoc-orig-3741.html` (không nằm trong repo).
+
+| File | Dòng | Nội dung |
+|---|---|---|
+| `velo/web/qu_c_c_b_t_hoang_3d.html` (shell) | **358** | Body 334 dòng + link `quycoc.css` + three.js r128 CDN + 6 tag `<script src="js/0*.js">` 00→05 |
+| `velo/web/quycoc.css` | 191 | Toàn bộ CSS (`.mvl-panel`, `.mvl-btn`, …) — shell không còn `<style>` |
+| `velo/web/js/00-state.js` | 208 | §1 Global State (`gameState`, `skills`) + §2 Scene/Camera/Lights + data tables §11 (`ITEMS`/`SHOP_STOCK`/`SECTS`/`ACTIVITIES`/`EVENTS`/`PETS`/`GUILD_PRESETS`) |
+| `velo/web/js/01-world.js` | 755 | Thế giới 3D (địa hình, pagoda, portal, đèn đá, hoa linh, đỉnh bay, nhân vật Quỷ Cốc) |
+| `velo/web/js/02-combat.js` | 576 | Combat real-time (quái, skill, `damageEnemy` gốc, nộ Bạo Linh Phù 12s/+35% crit) |
+| `velo/web/js/03-battle.js` | 420 | Battle vòng 2 (formation 5, auto-battle, raid 3 phase, combo/nộ, PvP, boss thế giới) |
+| `velo/web/js/04-mvl.js` | 733 | Hệ thống Mộng Võ Lâm (Túi/Môn Phái/Hoạt Động/Sự Kiện/Chợ/Bang Hội, thị trấn, pet, enhance/gem, lưu game) |
+| `velo/web/js/05-ui.js` | 570 | UI + vòng lặp chính (`animate`, `masterTick` 100ms, HUD, minimap, PvP UI) |
+| **Tổng shell + css + 6 module** | **3811** | 358 + 191 + 208 + 755 + 576 + 420 + 733 + 570 |
+
+**Lưu ý:** shell **không phải ~120 dòng** như ước lượng ban đầu — body HTML đã 334 dòng
+(khung DOM: canvas + 8 panel gốc + battle bar + HUD), nên shell tách xong là 358 dòng.
+Nhóm 2 đang nối `js/06-expand.js` vào shell nên số dòng shell/03/05 có thể tăng thêm
+(đã 370/432/583 khi nối 06) — harness vòng 3 chỉ khóa khoảng cho các file này, không
+khóa cứng 358/420/570.
+
+**Quy ước module (harness `tests/test-modules-mvl.js` kiểm tra):**
+
+- Mỗi module export 1 lần ở cuối file bằng `Object.assign(window.QC, {...})`.
+- **Không trùng tên hàm top-level** giữa các module (quét `function NAME`):
+  138 hàm (00–05), không trùng; kể cả 06 thì 195 hàm, không trùng.
+- **Ngoại lệ wrap có chủ đích** (bọc bằng gán, không phải khai báo `function` trùng):
+  `damageEnemy` (02 khai báo, 03 bọc lại qua `_g1DamageEnemyOrig` để cộng combo/nộ),
+  `equipItem` (04 khai báo + bọc lại qua `_g1EquipItemOrig` trong cùng file),
+  `recalcStats` (04 khai báo, 06 bọc lại qua `_xOrigRecalc` để cộng bonus tọa kỵ/thời trang).
+  `window.QC` chỉ export trùng đúng 1 tên: `damageEnemy` (02 + 03).
+- Mọi số liệu chuẩn MAX vòng 2 giữ nguyên sau khi tách (harness cũ đọc gộp
+  shell + css + module thay cho 1 file HTML duy nhất — xem §6).
+
+## 3.17. Hệ thống mới vòng 3 (nhóm 2) + chuẩn chung vòng 3
+
+### 3.17.1. js/06-expand.js — tọa kỵ, thời trang, bang chiến, VIP, thư/chat, xếp hạng
+
+Nhóm 2 đang hạ cánh `velo/web/js/06-expand.js` (đã ~800 dòng, `node --check` OK).
+Shell đã nạp 06 sau 05 và thêm 5 panel mới (`panel-mount`, `panel-war`, `panel-vip`,
+`panel-mail`, `panel-rank`) — tổng 13 panel. File V mới **đã có** (nhóm 2 hạ cánh
+2026-11-25): `mounts.v` 230 dòng, `fashion.v` 208 dòng, `guildwar.v` 172 dòng,
+`vip.v` 423 dòng — không có component mới nên `main.v` không cần register thêm.
+
+| Hệ thống | Số đo thật trong 06-expand.js | Ghi chú |
+|---|---|---|
+| Tọa kỵ `MOUNTS` | **6 con** (Ngựa Bạch 500 vàng → Thần Điêu 80000 vàng; tốc độ ×1.25 → ×2.0) | Mua trừ vàng, không âm; tiền khởi đầu 455 vàng **không đủ** mua con rẻ nhất (500) — phải kiếm thêm vàng trước |
+| Thời trang `FASHIONS` | **8 bộ** (Bạch Y 800 vàng → Ma Tôn 10000 vàng) | Mặc đổi tint áo nhân vật thật (`applyTunicTint`), +HP/+Công |
+| VIP `VIP_LEVELS` | **6 cấp** (level 0–5) | EXP cộng theo cấp `expPct [0,5,10,15,20,30]%` — VIP 5 cao nhất +30% EXP; còn +drop, +lượt hoạt động, +ô túi |
+| Bang chiến | Mở **19–20h** (`guildWarIsOpen`) | `fightGuildWar()` — thắng +điểm bang, thua vẫn có điểm an ủi |
+| Môn phái chiến | `fightSectWar()` | Đánh phái kề theo vòng tròn 8 phái; thắng +400 vàng/+150 EXP/+100 điểm phái |
+| Thư + chat | `sendMail`/`seedMail`/`mailbox`, `sendChat` (kênh thế giới + bang) | Thư có thưởng nhận được, chat có câu trả lời mẫu của NPC |
+| Bảng xếp hạng | `RANK_NPCS` **20 NPC mẫu** + `renderRank`/`rankList` | Xếp theo lực chiến giảm dần |
+| Đổi đội trưởng | Phím **F1/F2/F3** (`keydown` → `switchLeaderHTML`) | Đổi leader trong đội hình 5 người; taunt (`castTaunt`) kéo quái đánh tank |
+
+### 3.17.2. Chuẩn chung vòng 3 (nhóm 2 đang chốt)
+
+| Chuẩn chung | HTML (03-battle.js) | V (battle_map.v / pvp.v) | Trạng thái |
+|---|---|---|---|
+| Nộ khí: **Nộ Trảm tay**, dmg = công×4 + combo×10, AoE 6m, xong nộ về 0, combo về 0 | ✅ `castRageSkill` | ✅ `battle_rage_slash` (mult 4, combo 10, range 6.0); auto-burst +45% cũ đã gỡ | ✅ Khớp |
+| AoE raid: **90 dmg** (người chơi + đồng đội), HP sàn 15 | ✅ `raidDetonateAoe` dmg=90 | ✅ `raid_aoe_dmg = 90`, `dmg := raid_aoe_dmg` | ✅ Khớp |
+| Boss thế giới (gây ≥20000 dmg): **+5000 vàng + 50 linh thạch + 5 Đá Cường Hóa** | ✅ Đủ cả 3 (`worldBossAttack` ở 05-ui.js: `addItem('ngoc_linh', 50)` + `addItem('da_cuong_hoa', 5)`) | ✅ `world_boss_fight` + `inventory_add(8)` × 5 (Đá Cường Hóa, shop id 8) | ✅ Khớp |
+| Boss raid: **Kim Thiềm Vương 20000 HP / 120s / 3 phase** | ✅ Boss 20000 HP cố định | ✅ `raid_boss_max_hp = 20000`, `raid_time_limit_s = 120s` (`raid_time_left` đếm ngược, hết giờ thua), `start_raid_boss` ép HP boss về 20000 (hình boss của map giữ cho map thường) | ✅ Khớp |
+
+Nhóm 2 hạ cánh thêm **tank aggro thật** phía V (`battle_taunt` 6s, threat 200 —
+tank khiêu khích thì EnemyAI đuổi theo slot tank; không có taunt thì quái vẫn đuổi
+leader như cũ) và phím Nộ Trảm tay phía V là phím **N** (phím T đã dùng cho panel Đội
+ở `ui_map.v`).
+
+Harness `tests/test-battle-mvl.js` mục L kiểm tra 3 chuẩn chung này: phía nào chưa
+có thì báo MISSING, không fail. Mô phỏng thuần JS trong harness assert công thức
+chuẩn: Nộ Trảm (68, combo 10) → 372 dmg; AoE 90: HP 100 → sàn 15; boss TG 20000 dmg
+→ +5000 vàng + 50 linh thạch + 5 đá, 10000 dmg → +2500 vàng (không đá), 1999 dmg → 0.
+
 ---
 
 ## 4. Cách chơi
@@ -554,11 +640,15 @@ phí đổi phái, nhập phái, cơ chế lưu, boss bang (Kim Thiềm Vương 
    đánh quái: chạm quái để lao tới chém; kỹ năng: bấm 7 ô dưới màn hình
    (Chém Thường + 6 tuyệt kỹ), đan dược: bấm 3 nút tròn Hồi Huyết / Tụ Linh / Bạo Linh.
    Xoay camera: kéo; zoom: con lăn (desktop) — trên điện thoại dùng nút góc 3D.
-3. Thanh dưới mở 8 panel: Túi (mặc/tháo/dùng/bán + cường hóa/khảm ngọc),
+3. Thanh dưới mở 13 panel: 8 panel gốc — Túi (mặc/tháo/dùng/bán + cường hóa/khảm ngọc),
    Môn Phái (nhập/đổi phái), Hoạt Động (làm nhiệm vụ ngày lấy thưởng),
    Sự Kiện (chỉ mở đúng giờ thật), Chợ (mua/bán), Bang Hội (lập/gia nhập bang,
    đánh boss bang), Đội Hình (đổi chỗ/đổi thành viên 5 người),
-   Đ. Trường (đấu trường PvP + thưởng ngày + boss thế giới).
+   Đ. Trường (đấu trường PvP + thưởng ngày + boss thế giới) — và 5 panel mới vòng 3
+   (nhóm 2, `js/06-expand.js`): Tọa Kỵ (mua/cưỡi/nâng cấp 6 con), Bang Chiến
+   (đánh 19–20h), VIP (6 cấp, nạp lên cấp), Thư (nhận thưởng thư), Xếp Hạng
+   (20 NPC mẫu theo lực chiến). Đổi đội trưởng bằng phím F1/F2/F3 (desktop)
+   hoặc nút trong panel Đội Hình.
    **Battle bar** trên màn hình: nút 🤖 Tự đánh (bật/tắt auto-battle),
    ⏸ Tạm dừng, ⏭ Bỏ qua trận, ⚡ Tốc độ x1/x2, Combo, Nộ Trảm, damage log,
    thanh HP raid boss (Phase 1/3, 120 giây).
@@ -591,8 +681,9 @@ phí đổi phái, nhập phái, cơ chế lưu, boss bang (Kim Thiềm Vương 
 | Build V / exe Windows | **Chưa biên dịch được ở đây.** VM này không có toolchain V/Windows (`C:\v`, MinGW, engine clone 3D). `build_err.txt` cho thấy lần build gần nhất trên máy user còn **notice** (ví dụ `webp/webp.v:157: shifting a value from a signed type int can change the sign`, `team.v:70: e0 is immutable…`) — đó là notice, không phải lỗi dừng build, nhưng chưa ai xác nhận bản build mới nhất (sau 8 file V mới) biên dịch sạch. Các file V mới chỉ được kiểm bằng regex + đếm (harness), **không qua compiler V**. |
 | Chạy game V thật | Chưa chạy được exe (không có exe, không có Windows ở đây). GState mới đã thêm field nhưng **chưa ai xác nhận** HUD/scene gọi đúng các hàm mới (`join_sect`, `buy_item`, `enhance_slot`…) trong game chạy thật. |
 | Điện thoại thật | Chưa test trên điện thoại thật. Chỉ kiểm tra: cú pháp JS trong HTML qua `node --check` (PASS), đếm panel/bảng bằng regex (harness), hỗ trợ `touchstart` có mặt trong code. Chưa ai mở trang trên trình duyệt điện thoại thật để bấm thử 6 panel. |
-| Trình duyệt thật (battle v2) | **Chưa test được trên trình duyệt thật** — các hệ thống battle vòng 2 (formation, auto-battle, raid 3 phase, enhance UI, PvP UI) mới hạ cánh vào file HTML trong lúc kiểm chứng, chỉ mới kiểm tra bằng `node --check` (PASS, 3 block `<script>` tổng 155.887 byte) + harness đếm file (`tests/test-battle-mvl.js`). Chưa ai mở trang trên trình duyệt điện thoại thật để bấm thử 8 panel / battle bar / raid. |
+| Trình duyệt thật (battle v2) | **Chưa test được trên trình duyệt thật** — các hệ thống battle vòng 2 (formation, auto-battle, raid 3 phase, enhance UI, PvP UI) chỉ mới kiểm tra bằng `node --check` (PASS) + harness đếm file (`tests/test-battle-mvl.js`). Chưa ai mở trang trên trình duyệt điện thoại thật để bấm thử 13 panel / battle bar / raid. Vòng 3 tách module: `node --check` 6/6 module OK + smoke `python3 -m http.server` trong `velo/web` trả 200 cho shell + css + từng module (xem §6) — vẫn chưa phải test trình duyệt thật. |
 | Game V thật (battle v2) | Chưa chạy được; `battle_map.v` + `town.v` + 4 node panel mới trong `main.scene` mới hạ cánh, chưa qua compiler V, chưa chạy exe thật. |
+| Hệ thống mới vòng 3 (nhóm 2) | `js/06-expand.js` đã hạ cánh (tọa kỵ 6, thời trang 8, VIP 6 cấp, bang chiến 19–20h, môn phái chiến, thư/chat, xếp hạng 20 NPC, F1/F2/F3) — chỉ kiểm bằng `node --check` + harness mô phỏng VM (`tests/test-expand-r3.js`: **95 PASS / 0 FAIL**), **chưa test trên trình duyệt thật**; file V mới `mounts.v`/`fashion.v`/`guildwar.v`/`vip.v` **đã có** (chỉ kiểm tĩnh bằng grep, chưa qua compiler V); chuẩn chung vòng 3 phía V (Nộ Trảm tay, AoE 90, +5 Đá Cường Hóa boss TG, boss raid 20000 HP) **đã hạ cánh** trong `battle_map.v`/`pvp.v` (harness battle mục L: 0 FAIL). |
 | Thưởng ngày PvP | Đã có ở cả hai bản, khớp nhau: +150 vàng/+300 bạc/+50 EXP, 1 lần/ngày (V: `claim_pvp_daily()`, lưu bền qua `save.v`). |
 | Luật cường hóa vòng 2 | "Thất bại tối đa −1" được hiểu là giới hạn trên; cả hai bản giữ nguyên cấp (rớt 0). Muốn rớt đúng 1 cấp thì cần quyết riêng (xem mục 7). |
 | Lưu game V | `save.v` mới serialize JSON trong bộ nhớ; chưa nối vào nơi lưu bền nên chưa test được "tắt exe → mở lại còn đồ". |
@@ -615,10 +706,10 @@ phí đổi phái, nhập phái, cơ chế lưu, boss bang (Kim Thiềm Vương 
 - **Chợ người chơi:** chợ chỉ bán đồ hệ thống (shop cố định), không có rao bán/đấu giá
   giữa người chơi với nhau.
 - **Đồng bộ HTML ↔ V:** chuẩn MAX vòng 2 đã khớp toàn bộ (harness vòng 1:
-  76 PASS / 0 FAIL). Còn **6 lệch battle vòng 2** (xem bảng 3.15: đội hình mặc định,
-  ngưỡng uống đan auto, quái con raid, cửa sổ combo, số dòng damage log, roll
-  cường hóa) + lệch cơ chế (nộ khí, boss raid, AoE raid, đá boss thế giới) +
-  chỉ số phái, phí đổi phái, cơ chế lưu khác nhau. Hai bản chơi **chưa giống hệt nhau**.
+  76 PASS / 0 FAIL). Chuẩn chung vòng 3 (Nộ Trảm tay, AoE raid 90, boss TG
+  +50 linh thạch + 5 Đá Cường Hóa, boss raid Kim Thiềm Vương 20000 HP) đã chốt
+  và **đã hạ cánh cả hai bản** (harness battle mục L: 0 FAIL). Còn khác nhau:
+  chỉ số phái, phí đổi phái, cơ chế lưu. Hai bản chơi **chưa giống hệt nhau**.
 - **Nhiệm vụ 20 chuỗi** mới chỉ có ở V (HTML chỉ có nhiệm vụ 15 yêu thú cũ +
   7 hoạt động ngày). PvP và thị trấn đã có ở cả hai bản; battle vòng 2 đã có
   ở cả hai bản (kể cả tốc độ/tạm dừng/bỏ qua + thưởng ngày PvP phía V, đã bổ sung vòng 2).
@@ -629,22 +720,37 @@ phí đổi phái, nhập phái, cơ chế lưu, boss bang (Kim Thiềm Vương 
 
 ```bash
 cd ~/workspace/quycoc-latest/repo
-node tests/test-mongvolam.js        # vòng 1: exit 0 = pass, exit 1 = có FAIL
-node tests/test-battle-mvl.js       # vòng 2: exit 0 = pass, exit 1 = có FAIL
-# node --check cho JS trích từ HTML (trích <script> ra /tmp rồi check):
-python3 -c "
-import re
-html = open('velo/web/qu_c_c_b_t_hoang_3d.html', encoding='utf-8').read()
-open('/tmp/mvl-html.js','w',encoding='utf-8').write('\n'.join(re.findall(r'<script>(.*?)</script>', html, re.S)))
-"
-node --check /tmp/mvl-html.js
+node tests/test-mongvolam.js        # vòng 1+3: exit 0 = pass, exit 1 = có FAIL
+node tests/test-battle-mvl.js       # vòng 2+3: exit 0 = pass, exit 1 = có FAIL
+node tests/test-modules-mvl.js      # vòng 3 (module): exit 0 = pass, exit 1 = có FAIL
+node tests/test-expand-r3.js        # vòng 3 (nhóm 2): 95 assert, exit 0 = pass
+# node --check từng module JS (vòng 3 không còn trích <script> từ HTML nữa):
+node --check velo/web/js/00-state.js
+node --check velo/web/js/01-world.js
+node --check velo/web/js/02-combat.js
+node --check velo/web/js/03-battle.js
+node --check velo/web/js/04-mvl.js
+node --check velo/web/js/05-ui.js
+node --check velo/web/js/06-expand.js   # nhóm 2, khi đã có file
+# Smoke server (vòng 3): phục vụ velo/web rồi curl từng file, phải trả 200:
+cd velo/web && python3 -m http.server 8123
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8123/qu_c_c_b_t_hoang_3d.html
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8123/quycoc.css
+for f in 00-state 01-world 02-combat 03-battle 04-mvl 05-ui 06-expand; do
+  curl -s -o /dev/null -w "%{http_code} js/$f.js\n" http://127.0.0.1:8123/js/$f.js
+done
+# (server này chỉ để kiểm file trả 200 + shell không còn <script> inline dài —
+# không thay cho test trình duyệt thật, xem §5.)
 ```
 
 Harness vòng 1 `tests/test-mongvolam.js` làm 4 việc, **không hardcode kết quả đếm**
 (mọi số liệu đọc từ file thật bằng regex tại thời điểm chạy; hệ thống chưa xuất hiện
-thì báo MISSING chứ không crash):
+thì báo MISSING chứ không crash). Vòng 3: mọi scan "HTML" chạy trên nội dung **gộp**
+shell + `quycoc.css` + module `js/00–05` (+06 khi có), kỳ vọng số liệu giữ nguyên:
 
-- **A. HTML:** đếm 6 panel thanh dưới, 8 phái, **6 pet (chuẩn vòng 2)**, 6 slot,
+- **A. HTML + module vòng 3:** shell 358 dòng gốc, nạp đủ module 00→05 đúng thứ tự,
+  không còn `<script>` inline dài, không còn `<style>` inline (CSS ra `quycoc.css`),
+  namespace `window.QC`; 6 panel thanh dưới, 8 phái, **6 pet (chuẩn vòng 2)**, 6 slot,
   localStorage, 7 hoạt động, **5 sự kiện (chuẩn vòng 2)**, chợ 12 món, ITEMS 25 món
   (19 cũ + 6 ngọc), **4 bang mẫu (chuẩn vòng 2)**, thị trấn an toàn, tự lưu 15 giây,
   tiền khởi đầu 455/40932, tiền không âm; giữ nguyên 7 skill, quest 15 yêu thú, touch.
@@ -656,47 +762,69 @@ thì báo MISSING chứ không crash):
   nhiệm vụ +200 vàng/+50 EXP; PvP thắng +25 / thua −15 / floor 0; cảnh giới mỗi 3 cấp.
 - **E. Cross-mirror HTML ↔ V:** phái, pet, bang, hoạt động, sự kiện, vàng/bạc khởi đầu,
   số món chợ, số trang bị.
-- **F. Docs:** `docs/MONG_VO_LAM.md` tồn tại + README gốc link đúng.
+- **F. Docs:** `docs/MONG_VO_LAM.md` tồn tại + có chương Module vòng 3;
+  README gốc link đúng.
 
-**Kết quả lần chạy cuối vòng 1 (2026-11-25 ~05:03): 76 PASS / 0 FAIL / 0 MISSING (tổng 76 assert).**
-
-- Chuẩn MAX vòng 2 đã khớp cả hai bản: pet 6/6, bang 4/4, sự kiện 5/5, vàng 455/455,
-  bạc 40932/40932, chợ 12/12, trang bị 13/13 (V đã sửa gold/silver/shop/equip;
-  HTML đã thêm 3 pet, 1 bang, 2 sự kiện, 6 ngọc → ITEMS 25). Harness đã cập nhật
-  kỳ vọng mới (ITEMS 25 thay cho 19) nên về **0 FAIL**.
-- **JS trong HTML:** `node --check` **PASS** (3 block `<script>`, tổng 155.887 byte).
-- **jsdom:** không có sẵn → không smoke test DOM được (ghi rõ, không giả vờ).
-
-Harness vòng 2 `tests/test-battle-mvl.js` (664 dòng, 134 assert) làm 3 việc,
-cùng nguyên tắc (đọc file thật bằng regex, MISSING thay vì crash):
+Harness vòng 2 `tests/test-battle-mvl.js` làm 3 việc, cùng nguyên tắc
+(đọc file thật bằng regex, MISSING thay vì crash; vòng 3 cũng đọc gộp module):
 
 - **A–J. Scan + mô phỏng battle:** formation 5 (5 slot / 3 hàng / tank-dps-healer),
-  auto-battle (skill khi đủ MP, đan khi HP < 30%, bật/tắt), raid boss Cóc Xanh
-  3 phase (ngưỡng 66%/33%, +2 quái con mỗi lần đổi phase, AoE cảnh báo),
-  combo (trần +50%) / nộ (12s, +35% crit) / damage log (tối đa 20 dòng),
-  tốc độ x1/x2 / tạm dừng / bỏ qua, enhance/gem (cost `100×(cấp+1)`, rate
-  `max(10, 100−cấp×10)%`, max +10, thất bại tối đa −1, 6 loại ngọc, tiền không âm),
-  PvP UI (8 đối thủ, +25/−15, floor 0, thưởng ngày 1 lần/ngày),
-  town safe (vào tắt spawn, ra bật lại, 3 NPC), 4 panel mới trong `main.scene`,
-  cross-mirror battle HTML ↔ V (chỉ FAIL khi cả hai phía đo được mà lệch nhau).
-- **K. Docs:** `docs/MONG_VO_LAM.md` có chương Battle + nhắc thưởng ngày;
-  README gốc ghi cách chạy `test-battle-mvl.js`.
+  auto-battle (skill khi đủ MP, đan khi HP < 25%, bật/tắt), raid boss Cóc Xanh
+  3 phase (ngưỡng 66%/33%, 3 quái con mỗi lần đổi phase, AoE cảnh báo 1,2s),
+  combo (cửa sổ 3s, trần +50%) / nộ (Nộ Trảm tay + Bạo Linh Phù 12s, +35% crit) /
+  damage log (tối đa 50 dòng), tốc độ x1/x2 / tạm dừng / bỏ qua, enhance/gem
+  (cost `100×(cấp+1)`, rate `max(10, 100−cấp×10)%`, max +10, thất bại tối đa −1,
+  6 loại ngọc, tiền không âm, roll có `attempts×29`), PvP UI (8 đối thủ, +25/−15,
+  floor 0, thưởng ngày 1 lần/ngày +150/+300/+50), town safe (vào tắt spawn,
+  ra bật lại, 3 NPC), 4 panel mới trong `main.scene`, cross-mirror battle HTML ↔ V
+  (chỉ FAIL khi cả hai phía đo được mà lệch nhau).
+- **L. Chuẩn chung vòng 3 (nhóm 2 đang chốt):** Nộ Trảm tay (dmg = công×4 + combo×10,
+  AoE 6m), AoE raid 90 dmg (hero + đồng đội), HP sàn 15, boss thế giới
+  +5000 vàng + 50 linh thạch + 5 Đá Cường Hóa khi gây ≥20000 dmg — phía nào chưa
+  có thì MISSING, không fail.
+- **K. Docs:** `docs/MONG_VO_LAM.md` có chương Battle + nhắc thưởng ngày +
+  nhắc chuẩn chung vòng 3; README gốc ghi cách chạy `test-battle-mvl.js`.
 
-**Kết quả sau đợt khớp của coordinator (chạy lại toàn bộ, xem báo cáo vòng 2):
-harness battle `tests/test-battle-mvl.js` về 0 FAIL** — 6 lệch số liệu mục J đã
-khớp theo chuẩn chung (đội hình `{0,1,2,5,7}`, ngưỡng uống đan 25%, quái con
-raid [3,3], combo 3s, log 50 dòng, roll cường hóa có `attempts×29` cả hai bản);
-2 MISSING phía V đã bổ sung thật (tốc độ/tạm dừng/bỏ qua + thưởng ngày PvP),
-`hud.v` đã find 4 panel mới. Chỉ còn 1 MISSING theo thiết kế: HTML không có
-`panel-battle` riêng (dùng battle bar thay thế).
-- 219 PASS gồm toàn bộ mô phỏng logic thuần JS (formation, auto-battle, phase,
-  combo/nộ/log, tốc độ/pause/skip, enhance/gem, PvP, town) + số liệu thật đã có
-  và khớp: nộ Bạo Linh Phù 12.0s/+0.35 cả hai bản, enhance max +10 / cost / rate /
-  6 ngọc khớp nhau, PvP 8 đối thủ +25/−15/floor 0 khớp nhau, town safe cả hai bản,
-  4 node panel mới đã có trong `main.scene`, 8 panel HTML.
-- **Lưu ý khi chạy lại:** nhóm 1+2 vẫn đang hạ cánh code trong lúc kiểm chứng
-  (HTML tăng 3.740 → 3.742 dòng giữa 3 lần đo) — số liệu trong docs này là ảnh chụp
-  tại lần chạy harness cuối; chạy lại harness để có số mới nhất.
+Harness vòng 3 `tests/test-modules-mvl.js` (mới) kiểm tra cấu trúc module:
+
+- **A. Cấu trúc module:** đủ file shell + css + js/00–05 (đúng số dòng gốc 358/191/
+  208/755/576/420/733/570, tổng 3811 — riêng shell/03/05 chỉ khóa khoảng vì nhóm 2
+  đang nối 06 nên số dòng tăng), shell nạp 00→05 đúng thứ tự (06 sau 05 khi nối xong),
+  không ES module, không `<script>` inline dài, không `<style>` inline, three.js r128 CDN.
+- **B. Không trùng tên hàm:** quét `function NAME` qua tất cả module (kể cả 06 khi có);
+  ngoại lệ wrap có chủ đích: `damageEnemy` (02→03), `equipItem` (04), `recalcStats`
+  (04→06); `window.QC` chỉ export trùng đúng `damageEnemy`.
+- **C. State/data khớp:** `gameState` (level 10, atk 68, crit 0.35, quest 15),
+  ITEMS 25, SHOP_STOCK 12, SECTS 8, ACTIVITIES 7, EVENTS 5, PETS 6, GUILD_PRESETS 4,
+  SLOT_NAMES 6, skills 7, HEROES 8 (id 0–7), PVP_OPPONENTS 8, WORLD_BOSS 200000 HP,
+  partyHeroes [0,1,2,5,7], vàng/bạc khởi đầu 455/40932.
+- **D. Hệ thống mới nhóm 2:** 06-expand.js + V mới (`mounts.v`/`fashion.v`/`guildwar.v`/
+  `vip.v`) — chưa có thì MISSING; đếm thật MOUNTS 6 / FASHIONS 8 / VIP_LEVELS 6 cấp
+  (expPct [0,5,10,15,20,30]%) / RANK_NPCS 20, bang chiến 19–20h, F1/F2/F3 đổi đội
+  trưởng; mô phỏng thiết kế (mua tọa kỵ trừ tiền, mặc thời trang đổi tint, VIP cộng
+  EXP, xếp hạng sắp xếp đúng).
+- **E. Hồi quy battle cũ:** 7 skill, quest 15, crit 0.35, combat real-time
+  (`requestAnimationFrame` + `masterTick` 100ms + dt clamp 0.05), auto-attack,
+  auto-battle + raid, localStorage — còn nguyên sau khi tách module.
+- **F. Docs:** chương Module + tổng 3811 dòng + chuẩn chung vòng 3 trong docs này;
+  README gốc ghi cách chạy `test-modules-mvl.js`; `velo/quycoc3d/README.md` ghi sơ đồ module.
+
+**Kết quả lần chạy cuối vòng 3 (2026-11-25, sau khi cập nhật docs):**
+
+- `tests/test-mongvolam.js`: **90 PASS / 0 FAIL / 0 MISSING** (tổng 90 assert).
+- `tests/test-battle-mvl.js`: **255 PASS / 0 FAIL / 1 MISSING** (tổng 256 assert —
+  MISSING duy nhất theo thiết kế: HTML không có `panel-battle` riêng, dùng battle bar).
+- `tests/test-modules-mvl.js`: **113 PASS / 0 FAIL / 0 MISSING** (tổng 113 assert).
+- `node --check`: 00–06 OK (06 khi đã có file).
+- Smoke `python3 -m http.server` trong `velo/web`: shell + css + 7 module đều 200;
+  shell có 9 `<script src>` (tailwind CDN + three.js CDN + 7 module), 0 `<style>`.
+
+**Lưu ý khi chạy lại:** nhóm 1+2 vẫn đang hạ cánh code trong lúc kiểm chứng
+(nhóm 2 đang nối 06-expand.js: shell 358 → 370 dòng, 03-battle.js 420 → 432,
+05-ui.js 570 → 583, thêm 5 panel mới, AoE đồng đội 60 → 90) — số liệu trong docs
+này là ảnh chụp tại lần chạy harness cuối; chạy lại harness để có số mới nhất.
+Các check số dòng shell/03/05 trong harness vòng 3 dùng khoảng (≥ số gốc) thay vì
+khóa cứng, đúng vì các file này đang được nhóm 2 sửa song song.
 
 ---
 
@@ -712,9 +840,13 @@ raid [3,3], combo 3s, log 50 dòng, roll cường hóa có `attempts×29` cả h
 3. **~~Chốt 6 lệch battle vòng 2~~ — ĐÃ CHỐT VÀ ĐÃ HẠ CÁNH (coordinator):**
    đội hình `{0,1,2,5,7}` (theo V), ngưỡng uống đan 25%, quái con raid [3,3],
    combo 3s, log 50 dòng, roll cường hóa có `attempts×29` cả hai bản.
-   Còn chưa chốt cơ chế: nộ khí (Nộ Trảm tay hay tự bùng nổ +45%?), boss raid
-   (cóc 20000 HP cố định hay boss của map?), AoE raid (90 cố định hay
-   20 + phase×10?), đá boss thế giới (+5 Đá Cường Hóa hay +50 linh thạch?).
+   **Chuẩn chung vòng 3 — ĐÃ CHỐT VÀ ĐÃ HẠ CÁNH CẢ HAI BẢN (nhóm 2):**
+   nộ khí = Nộ Trảm tay (dmg = công×4 + combo×10, AoE 6m; V: `battle_rage_slash`,
+   auto-burst +45% cũ đã gỡ), AoE raid = 90 dmg (cả hero + đồng đội; V:
+   `raid_aoe_dmg = 90`), đá boss thế giới = +50 linh thạch **+** 5 Đá Cường Hóa
+   (V: `world_boss_fight` + `inventory_add(8)` × 5), boss raid = Kim Thiềm Vương
+   20000 HP / 120s / 3 phase (V: `raid_boss_max_hp = 20000`) — xem §3.17.2.
+   Thêm: tank aggro thật phía V (`battle_taunt` 6s).
 4. **~~Thưởng ngày PvP phía V~~ — ĐÃ CÓ:** V áp dụng đúng số HTML
    (+150 vàng/+300 bạc/+50 EXP, 1 lần/ngày, `claim_pvp_daily()`).
 5. **Luật cường hóa "thất bại tối đa −1":** hiểu là giới hạn trên (cả hai bản giữ

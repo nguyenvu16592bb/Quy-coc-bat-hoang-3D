@@ -68,8 +68,8 @@ pub fn (mut c PlayerCombat) update(dt f32) {
 	}
 	s.mp = f32(math.min(s.max_mp, s.mp + 8.4 * dt))
 
-	// UI panels own the keyboard while they are open
-	if s.show_map || s.show_team {
+	// UI panels own the keyboard while they are open (vòng 3: mọi panel MVL)
+	if any_panel_open() {
 		c.animate(dt)
 		return
 	}

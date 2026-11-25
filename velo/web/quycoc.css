@@ -1,0 +1,191 @@
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #091316;
+      font-family: 'Noto Serif', serif;
+      color: #f3e6c8;
+    }
+
+    /* 16:9 Widescreen Container centered with ornate border */
+    #viewport-wrapper {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #11262a 0%, #060c0e 100%);
+    }
+
+    #game-frame {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw; /* 16:9 ratio */
+      max-height: 100vh;
+      max-width: 177.78vh; /* 16:9 ratio */
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(212, 175, 106, 0.35);
+      background: #142b30;
+    }
+
+    #three-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    /* Wuxia Ornate UI Frames */
+    .wuxia-panel {
+      background: linear-gradient(180deg, rgba(20, 27, 30, 0.88) 0%, rgba(12, 17, 19, 0.92) 100%);
+      border: 1px solid #8c6d3f;
+      box-shadow: inset 0 0 12px rgba(212, 175, 106, 0.15), 0 4px 16px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+    }
+
+    .wuxia-gold-text {
+      color: #f5d896;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(245, 216, 150, 0.3);
+    }
+
+    /* HP & MP Bars */
+    .bar-bg {
+      background: rgba(10, 12, 14, 0.85);
+      border: 1px solid #6e5530;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+    }
+    .hp-fill {
+      background: linear-gradient(90deg, #8e1c1c 0%, #d93829 60%, #ff6659 100%);
+      transition: width 0.18s ease-out;
+    }
+    .mp-fill {
+      background: linear-gradient(90deg, #134e7a 0%, #228be6 60%, #66d9e8 100%);
+      transition: width 0.18s ease-out;
+    }
+
+    /* Skill Slot Styling */
+    .skill-slot {
+      position: relative;
+      background: radial-gradient(circle at center, #252d30 0%, #101416 100%);
+      border: 1.5px solid #a8844c;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 3px 8px rgba(0,0,0,0.8);
+      transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .skill-slot:hover {
+      border-color: #ffe082;
+      box-shadow: 0 0 14px rgba(255, 213, 79, 0.55), inset 0 0 8px rgba(255, 213, 79, 0.3);
+      transform: translateY(-2px);
+    }
+    .skill-slot:active {
+      transform: scale(0.94);
+    }
+    .skill-cd-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 8, 10, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #ffd54f;
+      text-shadow: 0 1px 4px #000;
+      pointer-events: none;
+    }
+
+    /* Floating 3D Combat Text */
+    .floating-dmg {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+      animation: floatUpFade 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      z-index: 30;
+    }
+    .dmg-normal {
+      color: #ff6b35;
+      font-size: clamp(14px, 1.3vw, 20px);
+      text-shadow: 0 2px 0 #3b0d00, -1px -1px 0 #3b0d00, 1px -1px 0 #3b0d00, -1px 1px 0 #3b0d00, 1px 1px 0 #3b0d00;
+    }
+    .dmg-crit {
+      color: #ff9e1b;
+      font-size: clamp(17px, 1.65vw, 25px);
+      text-shadow: 0 2px 0 #4a1200, 0 0 10px rgba(255, 170, 0, 0.85), -1px -1px 0 #4a1200, 1px 1px 0 #4a1200;
+    }
+    .dmg-dodge {
+      color: #38d9ff;
+      font-size: clamp(14px, 1.3vw, 20px);
+      font-style: italic;
+      text-shadow: 0 2px 0 #002b3d, 0 0 8px rgba(56, 217, 255, 0.75);
+    }
+    .dmg-heal {
+      color: #51cf66;
+      font-size: clamp(14px, 1.3vw, 20px);
+      text-shadow: 0 2px 0 #082e10;
+    }
+
+    @keyframes floatUpFade {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -20%) scale(0.7);
+      }
+      18% {
+        opacity: 1;
+        transform: translate(-50%, -65%) scale(1.12);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -155%) scale(0.95);
+      }
+    }
+
+    /* ===== MONG VO LAM (MVL) bottom bar / panels / town ===== */
+    .mvl-bottom-bar{position:absolute;left:0;right:0;bottom:0;z-index:40;display:flex;gap:4px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(24,18,10,.96),rgba(10,8,6,.97));border-top:1px solid #8c6d3f;box-shadow:0 -4px 16px rgba(0,0,0,.6);overflow-x:auto}
+    .mvl-nav-btn{flex:1;min-height:48px;min-width:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(180deg,#2b2417,#171208);border:1px solid #8c6d3f;border-radius:8px;color:#f5d896;font-size:11px;font-weight:700;cursor:pointer;padding:4px 2px}
+    .mvl-nav-btn:active{transform:scale(.95);background:#3d2f16}
+    .mvl-nav-btn .ic{font-size:18px;line-height:1}
+    .mvl-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:196px;width:min(94vw,460px);max-height:56vh;overflow-y:auto;z-index:45;background:linear-gradient(180deg,rgba(22,28,30,.97),rgba(11,15,17,.97));border:1px solid #d4af6a;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.8);padding:10px 12px;-webkit-overflow-scrolling:touch}
+    .mvl-panel h3{margin:0 0 6px;font-size:15px;color:#ffe082}
+    .mvl-close{min-width:44px;min-height:44px;border-radius:8px;border:1px solid #8c6d3f;background:#2b2417;color:#ffe082;font-size:16px;font-weight:700;cursor:pointer}
+    .mvl-btn{min-height:44px;min-width:44px;padding:8px 12px;border-radius:8px;border:1px solid #8c6d3f;background:linear-gradient(180deg,#3a2f18,#221a0c);color:#ffe082;font-weight:700;font-size:13px;cursor:pointer}
+    .mvl-btn:disabled{opacity:.45;cursor:not-allowed}
+    .mvl-btn:active{transform:scale(.96)}
+    .mvl-btn.green{background:linear-gradient(180deg,#1d4d2b,#0f2c18);color:#b7f7c9;border-color:#51cf66}
+    .mvl-btn.red{background:linear-gradient(180deg,#5b1a1a,#331010);color:#ffb3b3;border-color:#ff8787}
+    .mvl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .mvl-item{border:1px solid #8c6d3f;border-radius:8px;background:rgba(255,255,255,.04);padding:8px 6px;text-align:center;font-size:12px}
+    .mvl-item .ic{font-size:22px}
+    .mvl-item .nm{font-weight:700;color:#f5d896;min-height:30px;display:block}
+    .mvl-item .qt{color:#8ce99a;font-weight:700}
+    .mvl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid rgba(140,109,63,.6);border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,.03)}
+    .mvl-row .t{font-size:13px;line-height:1.35}
+    .mvl-row .sub{font-size:11px;color:#b4c8c9}
+    .mvl-bar{height:10px;background:#0a0c0e;border:1px solid #6e5530;border-radius:5px;overflow:hidden;margin:4px 0}
+    .mvl-bar>i{display:block;height:100%;background:linear-gradient(90deg,#8e1c1c,#ff6659)}
+    .mvl-input{width:100%;min-height:44px;border-radius:8px;border:1px solid #8c6d3f;background:#0d1113;color:#f3e6c8;padding:8px 10px;font-size:14px}
+    .mvl-npc-btn{display:flex;align-items:center;gap:8px;min-height:48px;padding:6px 10px;border-radius:10px;border:1px solid #d4af6a;background:linear-gradient(180deg,rgba(30,38,40,.95),rgba(14,18,20,.95));color:#f5d896;font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+    .mvl-npc-btn:active{transform:scale(.97)}
+    #town-banner{position:absolute;top:64px;left:50%;transform:translateX(-50%);z-index:25;pointer-events:none}
+    /* Custom Scrollbar for Quest Box */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #8c6d3f;
+      border-radius: 4px;
+    }
+    /* ===== NHOM 1: battle bar / combo / rage / log / raid / team ===== */
+    .g1-log-line{padding:1px 0;border-bottom:1px solid rgba(140,109,63,.25);white-space:normal;word-break:break-word}
+    #dmg-log-body::-webkit-scrollbar{width:4px}
+    #raid-hp-bar{transition:width .2s ease-out}

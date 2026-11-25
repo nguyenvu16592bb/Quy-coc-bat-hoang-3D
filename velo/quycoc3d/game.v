@@ -119,6 +119,34 @@ mut:
 	enhance_sel_lv   int
 	enhance_sel_cost int
 	enhance_sel_rate int
+	// ---- tọa kỵ / thời trang / bang chiến / môn phái chiến / VIP / thư-chat (vòng 3) ----
+	// mounts.v / fashion.v / guildwar.v / vip.v — chỉ thêm field mới, không đổi/xóa field cũ.
+	mount_id         int = -1 // -1 = chưa cưỡi; 0..5 theo mounts.v
+	mount_owned      [6]bool
+	mount_level      [6]int
+	mount_riding     bool
+	fashion_id       int = -1 // -1 = chưa mặc; 0..7 theo fashion.v
+	fashion_owned    [8]bool
+	vip_level        int
+	vip_total_nap    int
+	guildwar_score   int
+	guildwar_wins    int
+	guildwar_losses  int
+	guildwar_date    string // ngày đánh bang chiến (dd/mm/yyyy), 1 trận/ngày
+	guildwar_log     []string
+	sectwar_score    int
+	sectwar_wins     int
+	sectwar_losses   int
+	sectwar_date     string // ngày đánh môn phái chiến, 1 trận/ngày
+	mail             []MailEntry
+	mail_unread      int
+	chat_log         []string
+	chat_guild_log   []string
+	// ---- khiêu khích / aggro + raid Kim Thiềm Vương (chuẩn chung vòng 3) ----
+	taunt_slot       int
+	taunt_active     bool
+	taunt_t          f32
+	raid_time_left   f32 // giây còn lại của raid (chuẩn 120s)
 }
 
 const g = &GState{}
@@ -140,8 +168,8 @@ fn apply_hero_stats() {
 	h := hero_def(s.hero_ids[s.leader])
 	base_hp := 180 + (s.level - 10) * 35
 	base_atk := 68 + (s.level - 10) * 14
-	s.max_hp = int(f32(base_hp) * h.hp_mult)
-	s.atk = int(f32(base_atk) * h.atk_mult)
+	s.max_hp = int(f32(base_hp) * h.hp_mult) + mount_bonus_hp() + fashion_bonus_hp()
+	s.atk = int(f32(base_atk) * h.atk_mult) + mount_bonus_atk() + fashion_bonus_atk()
 	s.crit = f32(0.35) + h.crit_add
 	if s.hp > s.max_hp {
 		s.hp = s.max_hp
@@ -224,6 +252,23 @@ fn publish() {
 	st.set_int('enhance_sel_lv', s.equip_level[sel])
 	st.set_int('enhance_sel_cost', enhance_cost(sel))
 	st.set_int('enhance_sel_rate', enhance_rate(sel))
+	// tọa kỵ / thời trang / bang chiến / môn phái chiến / VIP / thư (vòng 3)
+	st.set_int('mount_id', s.mount_id)
+	st.set_int('fashion_id', s.fashion_id)
+	st.set_int('vip_level', s.vip_level)
+	st.set_int('vip_total_nap', s.vip_total_nap)
+	st.set_int('guildwar_score', s.guildwar_score)
+	st.set_int('sectwar_score', s.sectwar_score)
+	st.set_int('mail_unread', s.mail_unread)
+	st.set_int('raid_time_left', int(s.raid_time_left))
+}
+
+// any_panel_open: true khi bất kỳ panel MVL nào đang mở (vòng 3 — guard
+// chung cho HeroController.click-to-move và PlayerCombat.keyboard: click/phím
+// lúc panel mở thuộc về panel, không điều khiển hero nữa).
+fn any_panel_open() bool {
+	s := gs()
+	return s.show_map || s.show_team || s.show_battle || s.show_town || s.show_enhance || s.show_pvp
 }
 
 // show_banner: the center-top system message (fades via HUDSync).
@@ -419,7 +464,7 @@ pub fn (mut h HeroController) update(dt f32) {
 
 	// click-to-move: press + release close together (not a camera drag).
 	// While a full-screen panel is open the click belongs to the panel.
-	if s.show_map || s.show_team {
+	if any_panel_open() {
 		h.target_pos = none
 		h.target_enemy = unsafe { nil }
 		h.hide_marker()
@@ -610,9 +655,10 @@ fn idle_frame(sk &render3d.SkinnedModel3D) f32 {
 // ---------- progression ----------
 
 // gain_exp: XP from a kill; levels up (with a realm step every 3 levels).
+// Vòng 3: VIP cộng % EXP thật (vip_exp_pct, vip.v) trên mọi nguồn EXP.
 fn gain_exp(n int) {
 	mut s := gs()
-	s.exp += n
+	s.exp += n + n * vip_exp_pct() / 100
 	for s.exp >= s.max_exp {
 		s.exp -= s.max_exp
 		s.max_exp = int(f32(s.max_exp) * 1.35)
@@ -621,8 +667,8 @@ fn gain_exp(n int) {
 		s.mp = s.max_mp
 		// HP/ATK come from the level through the leader's hero multipliers
 		h := hero_def(s.hero_ids[s.leader])
-		s.max_hp = int(f32(180 + (s.level - 10) * 35) * h.hp_mult)
-		s.atk = int(f32(68 + (s.level - 10) * 14) * h.atk_mult)
+		s.max_hp = int(f32(180 + (s.level - 10) * 35) * h.hp_mult) + mount_bonus_hp() + fashion_bonus_hp()
+		s.atk = int(f32(68 + (s.level - 10) * 14) * h.atk_mult) + mount_bonus_atk() + fashion_bonus_atk()
 		s.hp = s.max_hp
 		if s.level % 3 == 0 && s.realm < realms.len - 1 {
 			s.realm++
